@@ -208,11 +208,7 @@ For development, it's recommended to keep this running in a dedicated terminal w
    ```bash
    # Stop the development stack (Ctrl+C if running in foreground)
    
-   # Clean devbox shell
-   exit  # if in devbox shell
-   devbox clean
-
-   # Start fresh
+   # Start fresh in a new terminal
    devbox shell
    devbox services up
 
