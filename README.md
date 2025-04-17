@@ -73,6 +73,184 @@ A web-based application for managing and building custom decks for various Tradi
 └── migrations/       # Database migrations
 ```
 
+## Development Guide
+
+### Managing the Development Stack
+
+1. Start all services (recommended for development):
+   ```bash
+   # From project root
+   devbox services start
+   ```
+
+2. Start individual services:
+   ```bash
+   # Start only PostgreSQL
+   devbox services start postgresql
+
+   # Start only Redis (if needed)
+   devbox services start redis
+   ```
+
+3. Check services status:
+   ```bash
+   devbox services status
+   ```
+
+4. Stop services:
+   ```bash
+   # Stop all services
+   devbox services stop
+
+   # Stop specific service
+   devbox services stop postgresql
+   ```
+
+### Working with Migrations
+
+1. Migration Files Location:
+   ```
+   migrations/
+   ├── 000000_create_updated_at_function.up.sql   # Base function for updated_at
+   ├── 000000_create_updated_at_function.down.sql
+   ├── 000001_create_users.up.sql                 # Users table
+   ├── 000001_create_users.down.sql
+   └── ... other migrations
+   ```
+
+2. Creating New Migrations:
+   ```bash
+   # Create a new migration
+   ./scripts/migrate.sh create "add_user_preferences"
+
+   # This creates two files:
+   # - migrations/YYYYMMDDHHMMSS_add_user_preferences.up.sql
+   # - migrations/YYYYMMDDHHMMSS_add_user_preferences.down.sql
+   ```
+
+3. Migration Commands:
+   ```bash
+   # Apply all pending migrations
+   ./scripts/migrate.sh up
+
+   # Rollback last migration
+   ./scripts/migrate.sh down
+
+   # Rollback specific number of migrations
+   ./scripts/migrate.sh down 2
+
+   # Apply migrations up to a specific version
+   ./scripts/migrate.sh goto 20240315123456
+
+   # Show migration status
+   ./scripts/migrate.sh status
+   ```
+
+4. Best Practices:
+   - Always include both `up.sql` and `down.sql` files
+   - Test migrations by running them up and down
+   - Keep migrations idempotent when possible
+   - Add appropriate indexes in separate migrations
+   - Use transactions for data consistency
+
+### Database Management
+
+1. Connect to PostgreSQL:
+   ```bash
+   # Using psql (from devbox shell)
+   psql -U postgres -d card_craft
+
+   # Using connection string
+   psql postgresql://postgres:postgres@localhost:5432/card_craft
+   ```
+
+2. Common Database Tasks:
+   ```bash
+   # Backup database
+   pg_dump -U postgres card_craft > backup.sql
+
+   # Restore database
+   psql -U postgres card_craft < backup.sql
+
+   # Reset database (careful!)
+   ./scripts/migrate.sh down
+   dropdb -U postgres card_craft
+   createdb -U postgres card_craft
+   ./scripts/migrate.sh up
+   ```
+
+3. Seeding Data:
+   ```bash
+   # Seed all test data
+   go run cmd/seed/main.go
+
+   # Seed specific data (if implemented)
+   go run cmd/seed/main.go --only users,cards
+   ```
+
+### Common Development Tasks
+
+1. Rebuild GraphQL Code:
+   ```bash
+   # From project root
+   go run github.com/99designs/gqlgen generate
+   ```
+
+2. Update Frontend Dependencies:
+   ```bash
+   # From web directory
+   pnpm update
+   ```
+
+3. Run Tests:
+   ```bash
+   # Backend tests
+   go test ./...
+
+   # Frontend tests
+   cd web && pnpm test
+   ```
+
+4. Code Formatting:
+   ```bash
+   # Format Go code
+   go fmt ./...
+
+   # Format TypeScript/JavaScript
+   cd web && pnpm format
+   ```
+
+5. Linting:
+   ```bash
+   # Lint Go code
+   golangci-lint run
+
+   # Lint TypeScript/JavaScript
+   cd web && pnpm lint
+   ```
+
+### Troubleshooting
+
+1. Reset Development Environment:
+   ```bash
+   # Stop all services
+   devbox services stop
+
+   # Clean devbox shell
+   exit  # if in devbox shell
+   devbox clean
+
+   # Start fresh
+   devbox shell
+   devbox services start
+   ```
+
+2. Common Issues:
+   - Port conflicts: Check if ports 3000, 5432, or 8080 are in use
+   - Database connection: Ensure PostgreSQL service is running
+   - Migration errors: Check migration status and try rolling back
+   - JWT issues: Clear browser cookies and try logging in again
+
 ## License
 
 [License information to be added] 
