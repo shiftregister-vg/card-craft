@@ -22,40 +22,50 @@ A web-based application for managing and building custom decks for various Tradi
 
 ## Getting Started
 
+### Prerequisites
 1. Install Devbox:
    ```bash
    curl -fsSL https://get.jetpack.io/devbox | bash
    ```
 
-2. Clone the repository:
+2. Node.js and pnpm (for frontend development)
+   ```bash
+   npm install -g pnpm
+   ```
+
+### Setup
+
+1. Clone the repository:
    ```bash
    git clone https://github.com/shiftregister-vg/card-craft.git
    cd card-craft
    ```
 
-3. Start the development environment:
+2. Start the development environment:
    ```bash
    devbox shell
    ```
 
-4. Install dependencies:
+3. Install backend dependencies:
    ```bash
    go mod tidy
    ```
 
-5. Set up the database:
+4. Start the development stack:
    ```bash
-   # Start PostgreSQL
-   devbox services start postgresql
-   
-   # Create database and run migrations
-   # (Instructions will be added as the project develops)
+   devbox services up
    ```
 
-6. Start the development server:
-   ```bash
-   go run cmd/server/main.go
-   ```
+The development stack includes:
+- PostgreSQL database
+- Backend server
+- Frontend development server
+- Database migrations
+- Test data seeding
+
+Once running, you can access:
+- Frontend: http://localhost:3000
+- GraphQL Playground: http://localhost:8080/playground
 
 ## Project Structure
 
