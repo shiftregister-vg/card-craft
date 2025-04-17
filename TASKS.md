@@ -45,10 +45,21 @@
   - [x] Card resolvers
   - [x] Deck resolvers
   - [x] DeckCard resolvers
+- [x] Create frontend application
+  - [x] Frontend framework selection (Remix)
+  - [x] Basic UI/UX design with Tailwind CSS
+  - [x] Authentication components
+  - [x] User profile components
+  - [x] Navigation and layout
+- [x] Implement user profile management
+  - [x] User registration
+  - [x] User login/logout
+  - [x] Account information display
+  - [x] Server-side authentication
+  - [x] JWT token handling
+  - [x] Protected routes
 
 ## In Progress
-- [ ] Create frontend application
-- [ ] Implement user profile management
 - [ ] Add card collection features
 - [ ] Set up deployment pipeline
 
@@ -70,7 +81,6 @@
 - [ ] Import scheduling and background jobs
 
 ### Frontend
-- [ ] Frontend framework selection
 - [ ] UI/UX design
 - [ ] Component implementation
 - [ ] State management
