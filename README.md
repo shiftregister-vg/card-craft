@@ -41,12 +41,7 @@ curl -fsSL https://get.jetpack.io/devbox | bash
    devbox shell
    ```
 
-3. Install backend dependencies:
-   ```bash
-   go mod tidy
-   ```
-
-4. Start the development stack:
+3. Start the development stack:
    ```bash
    devbox services up
    ```
