@@ -71,11 +71,10 @@ Once running, you can access:
 │   ├── config/      # Application configuration
 │   ├── database/    # Database connections and utilities
 │   ├── graph/       # GraphQL schema and resolvers
-│   ├── handlers/    # HTTP request handlers
-│   ├── importers/   # Card import implementations
+│   ├── graphql/     # GraphQL server setup
 │   ├── middleware/  # HTTP/GraphQL middleware
 │   ├── models/      # Database models
-│   ├── seed/        # Seeding utilities
+│   ├── seed/        # Database seeding logic
 │   ├── server/      # Server setup and configuration
 │   ├── services/    # Business logic services
 │   ├── types/       # Common type definitions
@@ -85,14 +84,12 @@ Once running, you can access:
 ├── scripts/        # Utility scripts
 ├── tools/          # Development tools
 └── web/           # Frontend application (Remix)
-    ├── app/       # Application code
-    │   ├── components/  # React components
-    │   ├── context/    # React context providers
-    │   ├── graphql/    # GraphQL queries and mutations
-    │   ├── lib/        # Utility functions and configs
-    │   ├── routes/     # Remix routes
-    │   └── styles/     # CSS and styling
-    └── public/    # Static assets
+    └── app/       # Application code
+        ├── components/  # React components
+        ├── context/    # React context providers
+        ├── graphql/    # GraphQL queries and mutations
+        ├── lib/        # Utility functions and configs
+        └── routes/     # Remix routes
 ```
 
 ## Development Guide
