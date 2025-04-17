@@ -54,7 +54,7 @@ The development stack includes:
 - Test data seeding
 
 Once running, you can access:
-- Frontend: http://localhost:3000
+- Frontend: http://localhost:5173
 - GraphQL Playground: http://localhost:8080/playground
 
 ## Project Structure
