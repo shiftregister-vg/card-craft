@@ -77,34 +77,16 @@ A web-based application for managing and building custom decks for various Tradi
 
 ### Managing the Development Stack
 
-1. Start all services (recommended for development):
-   ```bash
-   # From project root
-   devbox services start
-   ```
+The project uses Devbox to manage all required services (PostgreSQL, etc.). Start the entire development stack with:
 
-2. Start individual services:
-   ```bash
-   # Start only PostgreSQL
-   devbox services start postgresql
+```bash
+# From project root
+devbox services up
+```
 
-   # Start only Redis (if needed)
-   devbox services start redis
-   ```
+This will start all necessary services in the foreground with logs visible. Use Ctrl+C to stop all services when done.
 
-3. Check services status:
-   ```bash
-   devbox services status
-   ```
-
-4. Stop services:
-   ```bash
-   # Stop all services
-   devbox services stop
-
-   # Stop specific service
-   devbox services stop postgresql
-   ```
+For development, it's recommended to keep this running in a dedicated terminal while you work in other terminals for running the application, tests, etc.
 
 ### Working with Migrations
 
@@ -155,7 +137,7 @@ A web-based application for managing and building custom decks for various Tradi
 
 ### Database Management
 
-1. Connect to PostgreSQL:
+1. Connect to PostgreSQL (ensure devbox services are running):
    ```bash
    # Using psql (from devbox shell)
    psql -U postgres -d card_craft
@@ -233,21 +215,20 @@ A web-based application for managing and building custom decks for various Tradi
 
 1. Reset Development Environment:
    ```bash
-   # Stop all services
-   devbox services stop
-
+   # Stop the development stack (Ctrl+C if running in foreground)
+   
    # Clean devbox shell
    exit  # if in devbox shell
    devbox clean
 
    # Start fresh
    devbox shell
-   devbox services start
+   devbox services up
    ```
 
 2. Common Issues:
    - Port conflicts: Check if ports 3000, 5432, or 8080 are in use
-   - Database connection: Ensure PostgreSQL service is running
+   - Database connection: Ensure the development stack is running (`devbox services up`)
    - Migration errors: Check migration status and try rolling back
    - JWT issues: Clear browser cookies and try logging in again
 
