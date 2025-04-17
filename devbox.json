@@ -2,33 +2,20 @@
   "packages": [
     "go@1.24.1",
     "postgresql@latest",
-    "nodejs@latest",
+    "nodejs@20",
     "git@latest",
-    "air@latest",
+    "air@latest"
   ],
-  "env": {},
+  "env": {
+    "DEVBOX_COREPACK_ENABLED": "true"
+  },
   "shell": {
     "init_hook": "go mod tidy",
     "scripts": {
-      "server": ["go run cmd/server/main.go"],
-      "seed":   ["go run cmd/seed/main.go"],
-      "init-db": [
-        "echo \"Setting up database\"",
-        "echo \"Removing existing data dir @ $PGDATA\"",
-        "rm -rf \"$PGDATA\"",
-        "initdb",
-        "pg_isready && pg_ctl stop -m fast",
-        "pg_ctl start -o \"-k $PGHOST\"",
-        "createuser -s -r card-craft",
-        "echo $(whoami)",
-        "dropdb --if-exists $(whoami)",
-        "dropdb --if-exists postgres",
-        "createdb",
-        "createdb postgres",
-        "psql postgres -c \"ALTER USER \\\"card-craft\\\" WITH PASSWORD 'dbpasswd';\"",
-        "psql postgres -c \"ALTER DATABASE postgres OWNER TO \\\"card-craft\\\";\"",
-        "pg_ctl stop -m fast",
-      ],
-    },
-  },
+      "server": "air",
+      "db:init": "initdb -D .devbox/pg/data -U postgres",
+      "db:start": "pg_ctl -D .devbox/pg/data -l .devbox/pg/logfile start",
+      "db:stop": "pg_ctl -D .devbox/pg/data stop"
+    }
+  }
 }

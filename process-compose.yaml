@@ -12,17 +12,24 @@ processes:
             postgresql:
                 condition: process_healthy
         log_location: .devbox/logs/server.log
-        # namespace: grpc:8012, http:8011
-        # readiness_probe:
-        #     failure_threshold: 5
-        #     http_get:
-        #         host: localhost
-        #         path: /liveness
-        #         port: 8011
-        #         scheme: http
-        #     initial_delay_seconds: 5
-        #     period_seconds: 10
-        #     success_threshold: 1
-        #     timeout_seconds: 5
+        readiness_probe:
+            failure_threshold: 5
+            http_get:
+                host: localhost
+                path: /
+                port: 8080
+                scheme: http
+            initial_delay_seconds: 5
+            period_seconds: 10
+            success_threshold: 1
+            timeout_seconds: 5
+        shutdown:
+            timeout_seconds: 10
+    web:
+        command: cd web && pnpm dev
+        depends_on:
+            server:
+                condition: process_healthy
+        log_location: .devbox/logs/web.log
         shutdown:
             timeout_seconds: 10

@@ -9,14 +9,8 @@ CREATE TABLE decks (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
--- Create index on user_id for faster lookups
-CREATE INDEX idx_decks_user_id ON decks(user_id);
-
--- Create index on game for faster filtering
-CREATE INDEX idx_decks_game ON decks(game);
-
 -- Create trigger to automatically update updated_at
 CREATE TRIGGER update_decks_updated_at
     BEFORE UPDATE ON decks
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column(); 
+    EXECUTE FUNCTION update_updated_at_column();

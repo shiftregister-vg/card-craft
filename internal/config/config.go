@@ -4,8 +4,7 @@ import (
 	"os"
 	"strconv"
 	"time"
-
-	"github.com/joho/godotenv"
+	// "github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -24,9 +23,9 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	if err := godotenv.Load(); err != nil {
-		return nil, err
-	}
+	// if err := godotenv.Load(); err != nil {
+	// 	return nil, err
+	// }
 
 	port, _ := strconv.Atoi(getEnv("DB_PORT", "5432"))
 	rateLimit, _ := strconv.Atoi(getEnv("RATE_LIMIT", "100"))

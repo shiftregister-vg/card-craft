@@ -19,7 +19,7 @@ func main() {
 	flag.Parse()
 
 	// Load environment variables
-	if err := godotenv.Load(); err != nil {
+	if err := godotenv.Load(".env.localhost", ".env"); err != nil {
 		log.Printf("Warning: .env file not found: %v", err)
 	}
 

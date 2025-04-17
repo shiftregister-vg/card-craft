@@ -8,11 +8,8 @@ CREATE TABLE deck_cards (
     PRIMARY KEY (deck_id, card_id)
 );
 
--- Create index on card_id for faster lookups
-CREATE INDEX idx_deck_cards_card_id ON deck_cards(card_id);
-
 -- Create trigger to automatically update updated_at
 CREATE TRIGGER update_deck_cards_updated_at
     BEFORE UPDATE ON deck_cards
     FOR EACH ROW
-    EXECUTE FUNCTION update_updated_at_column(); 
+    EXECUTE FUNCTION update_updated_at_column();
