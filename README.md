@@ -55,7 +55,7 @@ The development stack includes:
 
 Once running, you can access:
 - Frontend: http://localhost:5173
-- GraphQL Playground: http://localhost:8080/playground
+- GraphQL Playground: http://localhost:8080
 
 ## Project Structure
 
