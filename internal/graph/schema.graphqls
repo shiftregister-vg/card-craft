@@ -1,0 +1,76 @@
+type User {
+  id: ID!
+  email: String!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+}
+
+type Card {
+  id: ID!
+  name: String!
+  game: String!
+  setCode: String!
+  setName: String!
+  number: String!
+  rarity: String!
+  imageUrl: String!
+  createdAt: String!
+  updatedAt: String!
+}
+
+input CardInput {
+  name: String!
+  game: String!
+  setCode: String!
+  setName: String!
+  number: String!
+  rarity: String!
+  imageUrl: String
+}
+
+type CardSearchResult {
+  cards: [Card!]!
+  totalCount: Int!
+  page: Int!
+  pageSize: Int!
+}
+
+type CardFilters {
+  sets: [String!]!
+  rarities: [String!]!
+}
+
+type Query {
+  # Card queries
+  card(id: ID!): Card
+  cardsByGame(game: String!): [Card!]!
+  cardsBySet(game: String!, setCode: String!): [Card!]!
+  searchCards(
+    game: String
+    setCode: String
+    rarity: String
+    name: String
+    page: Int
+    pageSize: Int
+    sortBy: String
+    sortOrder: String
+  ): CardSearchResult!
+  cardFilters(game: String!): CardFilters!
+}
+
+type Mutation {
+  # Authentication mutations
+  register(email: String!, password: String!): AuthPayload!
+  login(email: String!, password: String!): AuthPayload!
+  refreshToken: AuthPayload!
+  
+  # Card mutations
+  createCard(input: CardInput!): Card!
+  updateCard(id: ID!, input: CardInput!): Card!
+  deleteCard(id: ID!): Boolean!
+} 

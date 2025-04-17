@@ -1,0 +1,49 @@
+# User Registration
+mutation RegisterUser {
+  register(email: "user@example.com", password: "securePassword123!") {
+    token
+    user {
+      id
+      email
+      createdAt
+    }
+  }
+}
+
+# User Login
+mutation LoginUser {
+  login(email: "user@example.com", password: "securePassword123!") {
+    token
+    user {
+      id
+      email
+      createdAt
+    }
+  }
+}
+
+# Refresh Token
+mutation RefreshToken {
+  refreshToken {
+    token
+    user {
+      id
+      email
+      createdAt
+    }
+  }
+}
+
+# Example of using the token in subsequent requests
+# Add this header to your requests:
+# Authorization: Bearer <token>
+
+# Example of a protected query (requires authentication)
+query GetUserProfile {
+  me {
+    id
+    email
+    createdAt
+    # Add other user fields as needed
+  }
+} 
