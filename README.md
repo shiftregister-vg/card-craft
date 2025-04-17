@@ -125,7 +125,7 @@ For development, it's recommended to keep this running in a dedicated terminal w
 2. Creating New Migrations:
    ```bash
    # Create a new migration
-   ./scripts/migrate.sh create "add_user_preferences"
+   devbox run migrate:create "add_user_preferences"
 
    # This creates two files:
    # - migrations/YYYYMMDDHHMMSS_add_user_preferences.up.sql
@@ -135,27 +135,11 @@ For development, it's recommended to keep this running in a dedicated terminal w
 3. Migration Commands:
    ```bash
    # Apply all pending migrations
-   ./scripts/migrate.sh up
+   devbox run migrate:up
 
    # Rollback last migration
-   ./scripts/migrate.sh down
-
-   # Rollback specific number of migrations
-   ./scripts/migrate.sh down 2
-
-   # Apply migrations up to a specific version
-   ./scripts/migrate.sh goto 20240315123456
-
-   # Show migration status
-   ./scripts/migrate.sh status
+   devbox run migrate:down
    ```
-
-4. Best Practices:
-   - Always include both `up.sql` and `down.sql` files
-   - Test migrations by running them up and down
-   - Keep migrations idempotent when possible
-   - Add appropriate indexes in separate migrations
-   - Use transactions for data consistency
 
 ### Database Management
 
@@ -170,34 +154,19 @@ For development, it's recommended to keep this running in a dedicated terminal w
 
 2. Common Database Tasks:
    ```bash
-   # Backup database
-   pg_dump -U postgres card_craft > backup.sql
+   # Initialize a fresh database
+   devbox run init-db
 
-   # Restore database
-   psql -U postgres card_craft < backup.sql
-
-   # Reset database (careful!)
-   ./scripts/migrate.sh down
-   dropdb -U postgres card_craft
-   createdb -U postgres card_craft
-   ./scripts/migrate.sh up
-   ```
-
-3. Seeding Data:
-   ```bash
-   # Seed all test data
-   go run cmd/seed/main.go
-
-   # Seed specific data (if implemented)
-   go run cmd/seed/main.go --only users,cards
+   # Seed test data
+   devbox run seed
    ```
 
 ### Common Development Tasks
 
-1. Rebuild GraphQL Code:
+1. Generate GraphQL Code:
    ```bash
    # From project root
-   go run github.com/99designs/gqlgen generate
+   go generate ./...
    ```
 
 2. Update Frontend Dependencies:
@@ -246,12 +215,17 @@ For development, it's recommended to keep this running in a dedicated terminal w
    # Start fresh
    devbox shell
    devbox services up
+
+   # Reinitialize database if needed
+   devbox run init-db
+   devbox run migrate:up
+   devbox run seed
    ```
 
 2. Common Issues:
-   - Port conflicts: Check if ports 3000, 5432, or 8080 are in use
+   - Port conflicts: Check if ports 5173, 5432, or 8080 are in use
    - Database connection: Ensure the development stack is running (`devbox services up`)
-   - Migration errors: Check migration status and try rolling back
+   - Migration errors: Check migration status and try rolling back with `devbox run migrate:down`
    - JWT issues: Clear browser cookies and try logging in again
 
 ## License
