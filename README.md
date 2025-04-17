@@ -146,10 +146,10 @@ For development, it's recommended to keep this running in a dedicated terminal w
 1. Connect to PostgreSQL (ensure devbox services are running):
    ```bash
    # Using psql (from devbox shell)
-   psql -U postgres -d card_craft
+   psql -U card-craft -d postgres
 
    # Using connection string
-   psql postgresql://postgres:postgres@localhost:5432/card_craft
+   psql postgresql://card-craft:dbpasswd@localhost:5432/postgres
    ```
 
 2. Common Database Tasks:
