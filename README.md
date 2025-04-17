@@ -64,7 +64,6 @@ Once running, you can access:
 ├── cmd/                # Application entry points
 │   ├── seed/         # Database seeding tool
 │   └── server/       # Main server application
-├── docs/             # Documentation files
 ├── internal/         # Private application code
 │   ├── auth/        # Authentication and authorization
 │   ├── cards/       # Card management logic
@@ -76,13 +75,10 @@ Once running, you can access:
 │   ├── models/      # Database models
 │   ├── seed/        # Database seeding logic
 │   ├── server/      # Server setup and configuration
-│   ├── services/    # Business logic services
 │   ├── types/       # Common type definitions
 │   └── utils/       # Shared utilities
 ├── migrations/      # Database migration files
-├── pkg/            # Public packages
 ├── scripts/        # Utility scripts
-├── tools/          # Development tools
 └── web/           # Frontend application (Remix)
     └── app/       # Application code
         ├── components/  # React components
