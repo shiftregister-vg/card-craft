@@ -10,7 +10,7 @@
     "DEVBOX_COREPACK_ENABLED": "true"
   },
   "shell": {
-    "init_hook": "go mod tidy",
+    "init_hook": "go mod tidy && cd web && pnpm i && cd ..",
     "scripts": {
       "server": ["go run cmd/server/main.go"],
       "seed": ["go run cmd/seed/main.go"],
