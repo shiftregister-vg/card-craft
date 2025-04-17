@@ -1,10 +1,8 @@
 package cards
 
 import (
-	"database/sql"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/shiftregister-vg/card-craft/internal/models"
 	"github.com/shiftregister-vg/card-craft/internal/types"
@@ -32,96 +30,56 @@ type SearchResult struct {
 
 // SearchService handles card search and filtering
 type SearchService struct {
-	db *sql.DB
+	cardStore *models.CardStore
 }
 
 // NewSearchService creates a new SearchService
-func NewSearchService(db *sql.DB) *SearchService {
-	return &SearchService{db: db}
+func NewSearchService(cardStore *models.CardStore) *SearchService {
+	return &SearchService{cardStore: cardStore}
 }
 
 // Search searches for cards based on the provided options
 func (s *SearchService) Search(opts types.SearchOptions) (*types.CardSearchResult, error) {
-	// Build the base query
-	query := "SELECT id, name, game, set_code, set_name, number, rarity, image_url, created_at, updated_at FROM cards WHERE 1=1"
-	args := []interface{}{}
-
-	// Add filters
-	if opts.Game != "" {
-		query += " AND game = ?"
-		args = append(args, opts.Game)
-	}
-	if opts.SetCode != "" {
-		query += " AND set_code = ?"
-		args = append(args, opts.SetCode)
-	}
-	if opts.Rarity != "" {
-		query += " AND rarity = ?"
-		args = append(args, opts.Rarity)
-	}
-	if opts.Name != "" {
-		query += " AND name LIKE ?"
-		args = append(args, "%"+opts.Name+"%")
-	}
-
-	// Add sorting
-	if opts.SortBy != "" {
-		query += " ORDER BY " + opts.SortBy
-		if opts.SortOrder != "" {
-			query += " " + opts.SortOrder
-		}
-	}
-
-	// Add pagination
-	if opts.PageSize > 0 {
-		query += " LIMIT ? OFFSET ?"
-		args = append(args, opts.PageSize, (opts.Page-1)*opts.PageSize)
-	}
-
-	// Execute the query
-	rows, err := s.db.Query(query, args...)
+	// Get all cards for the game
+	cards, err := s.cardStore.FindByGame(opts.Game)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search cards: %w", err)
 	}
-	defer rows.Close()
 
-	// Process results
-	var cards []*models.Card
-	for rows.Next() {
-		var card models.Card
-		var createdAt, updatedAt time.Time
-		err := rows.Scan(
-			&card.ID,
-			&card.Name,
-			&card.Game,
-			&card.SetCode,
-			&card.SetName,
-			&card.Number,
-			&card.Rarity,
-			&card.ImageURL,
-			&createdAt,
-			&updatedAt,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("failed to scan card: %w", err)
+	// Apply filters
+	var filteredCards []*models.Card
+	for _, card := range cards {
+		if opts.SetCode != "" && card.SetCode != opts.SetCode {
+			continue
 		}
-		card.CreatedAt = createdAt
-		card.UpdatedAt = updatedAt
-		cards = append(cards, &card)
+		if opts.Rarity != "" && card.Rarity != opts.Rarity {
+			continue
+		}
+		if opts.Name != "" && !strings.Contains(strings.ToLower(card.Name), strings.ToLower(opts.Name)) {
+			continue
+		}
+		filteredCards = append(filteredCards, card)
 	}
 
-	// Get total count
-	var total int
-	countQuery := strings.Split(query, "ORDER BY")[0]
-	countQuery = strings.Replace(countQuery, "SELECT id, name, game, set_code, set_name, number, rarity, image_url, created_at, updated_at", "SELECT COUNT(*)", 1)
-	countQuery = strings.Replace(countQuery, "LIMIT ? OFFSET ?", "", 1)
-	err = s.db.QueryRow(countQuery, args[:len(args)-2]...).Scan(&total)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get total count: %w", err)
+	// Apply sorting
+	if opts.SortBy != "" {
+		// TODO: Implement sorting
 	}
+
+	// Apply pagination
+	total := len(filteredCards)
+	start := (opts.Page - 1) * opts.PageSize
+	end := start + opts.PageSize
+	if start >= total {
+		start = total
+	}
+	if end > total {
+		end = total
+	}
+	paginatedCards := filteredCards[start:end]
 
 	return &types.CardSearchResult{
-		Cards:    cards,
+		Cards:    paginatedCards,
 		Total:    total,
 		Page:     opts.Page,
 		PageSize: opts.PageSize,
@@ -130,35 +88,30 @@ func (s *SearchService) Search(opts types.SearchOptions) (*types.CardSearchResul
 
 // GetFilters returns the available filters for a game
 func (s *SearchService) GetFilters(game string) (*types.CardFilters, error) {
-	filters := &types.CardFilters{}
-
-	// Get distinct set codes
-	rows, err := s.db.Query("SELECT DISTINCT set_code FROM cards WHERE game = ? ORDER BY set_code", game)
+	cards, err := s.cardStore.FindByGame(game)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get set codes: %w", err)
+		return nil, fmt.Errorf("failed to get filters: %w", err)
 	}
-	defer rows.Close()
 
-	for rows.Next() {
-		var set string
-		if err := rows.Scan(&set); err != nil {
-			return nil, fmt.Errorf("failed to scan set code: %w", err)
-		}
+	filters := &types.CardFilters{
+		Sets:     make([]string, 0),
+		Rarities: make([]string, 0),
+	}
+
+	// Track unique values
+	setMap := make(map[string]bool)
+	rarityMap := make(map[string]bool)
+
+	for _, card := range cards {
+		setMap[card.SetCode] = true
+		rarityMap[card.Rarity] = true
+	}
+
+	// Convert maps to slices
+	for set := range setMap {
 		filters.Sets = append(filters.Sets, set)
 	}
-
-	// Get distinct rarities
-	rows, err = s.db.Query("SELECT DISTINCT rarity FROM cards WHERE game = ? ORDER BY rarity", game)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get rarities: %w", err)
-	}
-	defer rows.Close()
-
-	for rows.Next() {
-		var rarity string
-		if err := rows.Scan(&rarity); err != nil {
-			return nil, fmt.Errorf("failed to scan rarity: %w", err)
-		}
+	for rarity := range rarityMap {
 		filters.Rarities = append(filters.Rarities, rarity)
 	}
 

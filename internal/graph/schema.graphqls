@@ -23,6 +23,27 @@ type Card {
   updatedAt: String!
 }
 
+type Deck {
+  id: ID!
+  name: String!
+  description: String
+  game: String!
+  userId: ID!
+  createdAt: String!
+  updatedAt: String!
+  cards: [DeckCard!]!
+}
+
+type DeckCard {
+  id: ID!
+  deckId: ID!
+  cardId: ID!
+  quantity: Int!
+  createdAt: String!
+  updatedAt: String!
+  card: Card!
+}
+
 input CardInput {
   name: String!
   game: String!
@@ -31,6 +52,17 @@ input CardInput {
   number: String!
   rarity: String!
   imageUrl: String
+}
+
+input DeckInput {
+  name: String!
+  description: String
+  game: String!
+}
+
+input DeckCardInput {
+  cardId: ID!
+  quantity: Int!
 }
 
 type CardSearchResult {
@@ -61,6 +93,11 @@ type Query {
     sortOrder: String
   ): CardSearchResult!
   cardFilters(game: String!): CardFilters!
+  
+  # Deck queries
+  deck(id: ID!): Deck
+  myDecks: [Deck!]!
+  deckCards(deckId: ID!): [DeckCard!]!
 }
 
 type Mutation {
@@ -73,4 +110,12 @@ type Mutation {
   createCard(input: CardInput!): Card!
   updateCard(id: ID!, input: CardInput!): Card!
   deleteCard(id: ID!): Boolean!
+  
+  # Deck mutations
+  createDeck(input: DeckInput!): Deck!
+  updateDeck(id: ID!, input: DeckInput!): Deck!
+  deleteDeck(id: ID!): Boolean!
+  addCardToDeck(deckId: ID!, input: DeckCardInput!): DeckCard!
+  updateDeckCard(id: ID!, quantity: Int!): DeckCard!
+  removeCardFromDeck(id: ID!): Boolean!
 } 

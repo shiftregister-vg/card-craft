@@ -1,0 +1,28 @@
+version: "0.5"
+log_configuration:
+    no_metadata: false
+    rotation:
+        max_size_mb: 1
+        max_age_days: 3
+        max_backups: 3
+processes:
+    server:
+        command: air
+        depends_on:
+            postgresql:
+                condition: process_healthy
+        log_location: .devbox/logs/server.log
+        # namespace: grpc:8012, http:8011
+        # readiness_probe:
+        #     failure_threshold: 5
+        #     http_get:
+        #         host: localhost
+        #         path: /liveness
+        #         port: 8011
+        #         scheme: http
+        #     initial_delay_seconds: 5
+        #     period_seconds: 10
+        #     success_threshold: 1
+        #     timeout_seconds: 5
+        shutdown:
+            timeout_seconds: 10

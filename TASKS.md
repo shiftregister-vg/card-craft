@@ -39,9 +39,14 @@
   - [x] Test deck data
   - [x] Test deck card data
   - [x] Seeder command-line tool
+- [x] Set up GraphQL server
+- [x] GraphQL resolver implementations
+  - [x] User resolvers
+  - [x] Card resolvers
+  - [x] Deck resolvers
+  - [x] DeckCard resolvers
 
 ## In Progress
-- [ ] Set up GraphQL server
 - [ ] Create frontend application
 - [ ] Implement user profile management
 - [ ] Add card collection features
@@ -54,10 +59,6 @@
   - [ ] Connection pooling
 
 ### GraphQL
-- [x] Resolver implementations
-  - [x] User resolvers
-  - [x] Card resolvers
-  - [ ] Deck resolvers
 - [ ] Error handling
 - [ ] Input validation
 - [ ] Query optimization

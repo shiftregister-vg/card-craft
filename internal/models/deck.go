@@ -21,6 +21,7 @@ type Deck struct {
 }
 
 type DeckCard struct {
+	ID        uuid.UUID `json:"id"`
 	DeckID    uuid.UUID `json:"deckId"`
 	CardID    uuid.UUID `json:"cardId"`
 	Quantity  int       `json:"quantity"`
@@ -148,11 +149,12 @@ func (s *DeckStore) AddCard(deckID, cardID uuid.UUID, quantity int) error {
 		VALUES ($1, $2, $3)
 		ON CONFLICT (deck_id, card_id) DO UPDATE
 		SET quantity = deck_cards.quantity + $3
-		RETURNING created_at, updated_at
+		RETURNING id, created_at, updated_at
 	`
 
+	var id uuid.UUID
 	var createdAt, updatedAt time.Time
-	return s.db.QueryRow(query, deckID, cardID, quantity).Scan(&createdAt, &updatedAt)
+	return s.db.QueryRow(query, deckID, cardID, quantity).Scan(&id, &createdAt, &updatedAt)
 }
 
 func (s *DeckStore) RemoveCard(deckID, cardID uuid.UUID) error {
@@ -163,7 +165,7 @@ func (s *DeckStore) RemoveCard(deckID, cardID uuid.UUID) error {
 
 func (s *DeckStore) GetCards(deckID uuid.UUID) ([]*DeckCard, error) {
 	query := `
-		SELECT deck_id, card_id, quantity, created_at, updated_at
+		SELECT id, deck_id, card_id, quantity, created_at, updated_at
 		FROM deck_cards
 		WHERE deck_id = $1
 	`
@@ -178,6 +180,7 @@ func (s *DeckStore) GetCards(deckID uuid.UUID) ([]*DeckCard, error) {
 	for rows.Next() {
 		deckCard := &DeckCard{}
 		err := rows.Scan(
+			&deckCard.ID,
 			&deckCard.DeckID,
 			&deckCard.CardID,
 			&deckCard.Quantity,
@@ -295,4 +298,41 @@ func (s *DeckStore) DeleteWithCards(ctx context.Context, id uuid.UUID) error {
 		_, err := tx.Exec("DELETE FROM decks WHERE id = $1", id)
 		return err
 	})
+}
+
+// GetDeckCard returns a deck card by its ID
+func (s *DeckStore) GetDeckCard(id uuid.UUID) (*DeckCard, error) {
+	deckCard := &DeckCard{}
+	query := `
+		SELECT id, deck_id, card_id, quantity, created_at, updated_at
+		FROM deck_cards
+		WHERE id = $1
+	`
+
+	err := s.db.QueryRow(query, id).Scan(
+		&deckCard.ID,
+		&deckCard.DeckID,
+		&deckCard.CardID,
+		&deckCard.Quantity,
+		&deckCard.CreatedAt,
+		&deckCard.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return deckCard, err
+}
+
+// UpdateDeckCard updates the quantity of a card in a deck
+func (s *DeckStore) UpdateDeckCard(id uuid.UUID, quantity int) error {
+	query := `
+		UPDATE deck_cards
+		SET quantity = $1, updated_at = NOW()
+		WHERE id = $2
+	`
+
+	_, err := s.db.Exec(query, quantity, id)
+	return err
 }

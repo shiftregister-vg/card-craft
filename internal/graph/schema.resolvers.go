@@ -14,6 +14,7 @@ import (
 	"github.com/shiftregister-vg/card-craft/internal/graph/generated"
 	"github.com/shiftregister-vg/card-craft/internal/models"
 	"github.com/shiftregister-vg/card-craft/internal/types"
+	"github.com/shiftregister-vg/card-craft/internal/utils"
 )
 
 // ID is the resolver for the id field.
@@ -37,18 +38,58 @@ func (r *cardSearchResultResolver) TotalCount(ctx context.Context, obj *types.Ca
 }
 
 // ID is the resolver for the id field.
-func (r *userResolver) ID(ctx context.Context, obj *models.User) (string, error) {
+func (r *deckResolver) ID(ctx context.Context, obj *models.Deck) (string, error) {
 	return obj.ID.String(), nil
 }
 
-// CreatedAt is the resolver for the createdAt field.
-func (r *userResolver) CreatedAt(ctx context.Context, obj *models.User) (string, error) {
+// UserID is the resolver for the userId field.
+func (r *deckResolver) UserID(ctx context.Context, obj *models.Deck) (string, error) {
+	return obj.UserID.String(), nil
+}
+
+// CreatedAt is the resolver for the Deck.CreatedAt field
+func (r *deckResolver) CreatedAt(ctx context.Context, obj *models.Deck) (string, error) {
 	return obj.CreatedAt.Format(time.RFC3339), nil
 }
 
 // UpdatedAt is the resolver for the updatedAt field.
-func (r *userResolver) UpdatedAt(ctx context.Context, obj *models.User) (string, error) {
+func (r *deckResolver) UpdatedAt(ctx context.Context, obj *models.Deck) (string, error) {
 	return obj.UpdatedAt.Format(time.RFC3339), nil
+}
+
+// Cards is the resolver for the cards field.
+func (r *deckResolver) Cards(ctx context.Context, obj *models.Deck) ([]*models.DeckCard, error) {
+	return r.deckStore.GetCards(obj.ID)
+}
+
+// ID is the resolver for the id field.
+func (r *deckCardResolver) ID(ctx context.Context, obj *models.DeckCard) (string, error) {
+	return obj.ID.String(), nil
+}
+
+// DeckID is the resolver for the deckId field.
+func (r *deckCardResolver) DeckID(ctx context.Context, obj *models.DeckCard) (string, error) {
+	return obj.DeckID.String(), nil
+}
+
+// CardID is the resolver for the cardId field.
+func (r *deckCardResolver) CardID(ctx context.Context, obj *models.DeckCard) (string, error) {
+	return obj.CardID.String(), nil
+}
+
+// CreatedAt is the resolver for the createdAt field.
+func (r *deckCardResolver) CreatedAt(ctx context.Context, obj *models.DeckCard) (string, error) {
+	return obj.CreatedAt.Format(time.RFC3339), nil
+}
+
+// UpdatedAt is the resolver for the updatedAt field.
+func (r *deckCardResolver) UpdatedAt(ctx context.Context, obj *models.DeckCard) (string, error) {
+	return obj.UpdatedAt.Format(time.RFC3339), nil
+}
+
+// Card is the resolver for the card field.
+func (r *deckCardResolver) Card(ctx context.Context, obj *models.DeckCard) (*models.Card, error) {
+	return r.cardStore.FindByID(obj.CardID)
 }
 
 // Register is the resolver for the register field.
@@ -76,7 +117,7 @@ func (r *mutationResolver) CreateCard(ctx context.Context, input types.CardInput
 		SetName:  input.SetName,
 		Number:   input.Number,
 		Rarity:   input.Rarity,
-		ImageURL: derefString(input.ImageURL),
+		ImageURL: utils.DerefString(input.ImageURL),
 	}
 
 	if err := r.cardStore.Create(card); err != nil {
@@ -108,7 +149,7 @@ func (r *mutationResolver) UpdateCard(ctx context.Context, id string, input type
 	card.SetName = input.SetName
 	card.Number = input.Number
 	card.Rarity = input.Rarity
-	card.ImageURL = derefString(input.ImageURL)
+	card.ImageURL = utils.DerefString(input.ImageURL)
 
 	if err := r.cardStore.Update(card); err != nil {
 		return nil, err
@@ -125,6 +166,213 @@ func (r *mutationResolver) DeleteCard(ctx context.Context, id string) (bool, err
 	}
 
 	if err := r.cardStore.Delete(uuid); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// CreateDeck is the resolver for the Mutation.CreateDeck field
+func (r *mutationResolver) CreateDeck(ctx context.Context, input types.DeckInput) (*models.Deck, error) {
+	user := auth.GetUserFromContext(ctx)
+	if user == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	deck := &models.Deck{
+		ID:          uuid.New(),
+		UserID:      user.ID,
+		Name:        input.Name,
+		Description: utils.DerefString(input.Description),
+		Game:        input.Game,
+		IsPublic:    false,
+	}
+
+	if err := r.deckStore.Create(deck); err != nil {
+		return nil, err
+	}
+
+	return deck, nil
+}
+
+// UpdateDeck is the resolver for the Mutation.UpdateDeck field
+func (r *mutationResolver) UpdateDeck(ctx context.Context, id string, input types.DeckInput) (*models.Deck, error) {
+	user := auth.GetUserFromContext(ctx)
+	if user == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	uuid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, err
+	}
+
+	deck, err := r.deckStore.FindByID(uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	if deck == nil {
+		return nil, fmt.Errorf("deck not found")
+	}
+
+	if deck.UserID != user.ID {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	deck.Name = input.Name
+	deck.Description = utils.DerefString(input.Description)
+	deck.Game = input.Game
+
+	if err := r.deckStore.Update(deck); err != nil {
+		return nil, err
+	}
+
+	return deck, nil
+}
+
+// DeleteDeck is the resolver for the deleteDeck field.
+func (r *mutationResolver) DeleteDeck(ctx context.Context, id string) (bool, error) {
+	user := auth.GetUserFromContext(ctx)
+	if user == nil {
+		return false, fmt.Errorf("not authenticated")
+	}
+
+	uuid, err := uuid.Parse(id)
+	if err != nil {
+		return false, err
+	}
+
+	deck, err := r.deckStore.FindByID(uuid)
+	if err != nil {
+		return false, err
+	}
+
+	if deck == nil {
+		return false, fmt.Errorf("deck not found")
+	}
+
+	if deck.UserID != user.ID {
+		return false, fmt.Errorf("unauthorized")
+	}
+
+	if err := r.deckStore.Delete(uuid); err != nil {
+		return false, err
+	}
+
+	return true, nil
+}
+
+// AddCardToDeck is the resolver for the Mutation.AddCardToDeck field
+func (r *mutationResolver) AddCardToDeck(ctx context.Context, deckID string, input types.DeckCardInput) (*models.DeckCard, error) {
+	user := auth.GetUserFromContext(ctx)
+	if user == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	deckUUID, err := uuid.Parse(deckID)
+	if err != nil {
+		return nil, err
+	}
+
+	cardUUID, err := uuid.Parse(input.CardID)
+	if err != nil {
+		return nil, err
+	}
+
+	deck, err := r.deckStore.FindByID(deckUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	if deck == nil {
+		return nil, fmt.Errorf("deck not found")
+	}
+
+	if deck.UserID != user.ID {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	if err := r.deckStore.AddCard(deckUUID, cardUUID, input.Quantity); err != nil {
+		return nil, err
+	}
+
+	return &models.DeckCard{
+		DeckID:   deckUUID,
+		CardID:   cardUUID,
+		Quantity: input.Quantity,
+	}, nil
+}
+
+// UpdateDeckCard is the resolver for the updateDeckCard field.
+func (r *mutationResolver) UpdateDeckCard(ctx context.Context, id string, quantity int) (*models.DeckCard, error) {
+	user := auth.GetUserFromContext(ctx)
+	if user == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+
+	uuid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, err
+	}
+
+	deckCard, err := r.deckStore.GetDeckCard(uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	if deckCard == nil {
+		return nil, fmt.Errorf("deck card not found")
+	}
+
+	deck, err := r.deckStore.FindByID(deckCard.DeckID)
+	if err != nil {
+		return nil, err
+	}
+
+	if deck.UserID != user.ID {
+		return nil, fmt.Errorf("unauthorized")
+	}
+
+	if err := r.deckStore.UpdateDeckCard(uuid, quantity); err != nil {
+		return nil, err
+	}
+
+	deckCard.Quantity = quantity
+	return deckCard, nil
+}
+
+// RemoveCardFromDeck is the resolver for the removeCardFromDeck field.
+func (r *mutationResolver) RemoveCardFromDeck(ctx context.Context, id string) (bool, error) {
+	user := auth.GetUserFromContext(ctx)
+	if user == nil {
+		return false, fmt.Errorf("not authenticated")
+	}
+
+	uuid, err := uuid.Parse(id)
+	if err != nil {
+		return false, err
+	}
+
+	deckCard, err := r.deckStore.GetDeckCard(uuid)
+	if err != nil {
+		return false, err
+	}
+
+	if deckCard == nil {
+		return false, fmt.Errorf("deck card not found")
+	}
+
+	deck, err := r.deckStore.FindByID(deckCard.DeckID)
+	if err != nil {
+		return false, err
+	}
+
+	if deck.UserID != user.ID {
+		return false, fmt.Errorf("unauthorized")
+	}
+
+	if err := r.deckStore.RemoveCard(deckCard.DeckID, deckCard.CardID); err != nil {
 		return false, err
 	}
 
@@ -154,14 +402,14 @@ func (r *queryResolver) CardsBySet(ctx context.Context, game string, setCode str
 // SearchCards is the resolver for the searchCards field.
 func (r *queryResolver) SearchCards(ctx context.Context, game *string, setCode *string, rarity *string, name *string, page *int, pageSize *int, sortBy *string, sortOrder *string) (*types.CardSearchResult, error) {
 	opts := types.SearchOptions{
-		Game:      derefString(game),
-		SetCode:   derefString(setCode),
-		Rarity:    derefString(rarity),
-		Name:      derefString(name),
-		Page:      derefInt(page),
-		PageSize:  derefInt(pageSize),
-		SortBy:    derefString(sortBy),
-		SortOrder: derefString(sortOrder),
+		Game:      utils.DerefString(game),
+		SetCode:   utils.DerefString(setCode),
+		Rarity:    utils.DerefString(rarity),
+		Name:      utils.DerefString(name),
+		Page:      utils.DerefInt(page),
+		PageSize:  utils.DerefInt(pageSize),
+		SortBy:    utils.DerefString(sortBy),
+		SortOrder: utils.DerefString(sortOrder),
 	}
 
 	return r.searchService.Search(opts)
@@ -172,34 +420,78 @@ func (r *queryResolver) CardFilters(ctx context.Context, game string) (*types.Ca
 	return r.searchService.GetFilters(game)
 }
 
-// Helper functions for dereferencing optional parameters
-func derefString(s *string) string {
-	if s == nil {
-		return ""
+// Deck is the resolver for the deck field.
+func (r *queryResolver) Deck(ctx context.Context, id string) (*models.Deck, error) {
+	uuid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, err
 	}
-	return *s
+
+	return r.deckStore.FindByID(uuid)
 }
 
-func derefInt(i *int) int {
-	if i == nil {
-		return 0
-	}
-	return *i
-}
-
-func (r *queryResolver) Me(ctx context.Context) (*models.User, error) {
+// MyDecks is the resolver for the myDecks field.
+func (r *queryResolver) MyDecks(ctx context.Context) ([]*models.Deck, error) {
 	user := auth.GetUserFromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("not authenticated")
 	}
-	return user, nil
+
+	return r.deckStore.FindByUserID(user.ID)
 }
 
-// Mutation returns MutationResolver implementation.
+// DeckCards is the resolver for the deckCards field.
+func (r *queryResolver) DeckCards(ctx context.Context, deckID string) ([]*models.DeckCard, error) {
+	uuid, err := uuid.Parse(deckID)
+	if err != nil {
+		return nil, err
+	}
+
+	return r.deckStore.GetCards(uuid)
+}
+
+// ID is the resolver for the id field.
+func (r *userResolver) ID(ctx context.Context, obj *models.User) (string, error) {
+	return obj.ID.String(), nil
+}
+
+// CreatedAt is the resolver for the createdAt field.
+func (r *userResolver) CreatedAt(ctx context.Context, obj *models.User) (string, error) {
+	return obj.CreatedAt.Format(time.RFC3339), nil
+}
+
+// UpdatedAt is the resolver for the updatedAt field.
+func (r *userResolver) UpdatedAt(ctx context.Context, obj *models.User) (string, error) {
+	return obj.UpdatedAt.Format(time.RFC3339), nil
+}
+
+// Card returns generated.CardResolver implementation.
+func (r *Resolver) Card() generated.CardResolver { return &cardResolver{r} }
+
+// CardSearchResult returns generated.CardSearchResultResolver implementation.
+func (r *Resolver) CardSearchResult() generated.CardSearchResultResolver {
+	return &cardSearchResultResolver{r}
+}
+
+// Deck returns generated.DeckResolver implementation.
+func (r *Resolver) Deck() generated.DeckResolver { return &deckResolver{r} }
+
+// DeckCard returns generated.DeckCardResolver implementation.
+func (r *Resolver) DeckCard() generated.DeckCardResolver { return &deckCardResolver{r} }
+
+// Mutation returns generated.MutationResolver implementation.
 func (r *Resolver) Mutation() generated.MutationResolver { return &mutationResolver{r} }
 
-// Query returns QueryResolver implementation.
+// Query returns generated.QueryResolver implementation.
 func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
 
+// User returns generated.UserResolver implementation.
+func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
+
+type cardResolver struct{ *Resolver }
+type cardSearchResultResolver struct{ *Resolver }
+type deckResolver struct{ *Resolver }
+type deckCardResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type userResolver struct{ *Resolver }

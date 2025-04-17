@@ -15,6 +15,19 @@ type CardInput struct {
 	ImageURL *string `json:"imageUrl"`
 }
 
+// DeckInput represents the input for creating or updating a deck
+type DeckInput struct {
+	Name        string  `json:"name"`
+	Description *string `json:"description"`
+	Game        string  `json:"game"`
+}
+
+// DeckCardInput represents the input for adding a card to a deck
+type DeckCardInput struct {
+	CardID   string `json:"cardId"`
+	Quantity int    `json:"quantity"`
+}
+
 // SearchOptions represents the options for searching cards
 type SearchOptions struct {
 	Game      string `json:"game"`

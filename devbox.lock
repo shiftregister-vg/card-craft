@@ -1,6 +1,54 @@
 {
   "lockfile_version": "1",
   "packages": {
+    "air@latest": {
+      "last_modified": "2025-03-11T17:52:14Z",
+      "resolved": "github:NixOS/nixpkgs/0d534853a55b5d02a4ababa1d71921ce8f0aee4c#air",
+      "source": "devbox-search",
+      "version": "1.61.7",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/ml148gjvir4c3milb7hpyvc6wkg4jj0g-air-1.61.7",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/ml148gjvir4c3milb7hpyvc6wkg4jj0g-air-1.61.7"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/k4yqs3wv9xq06d7z5sybfnawdvffbqvg-air-1.61.7",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/k4yqs3wv9xq06d7z5sybfnawdvffbqvg-air-1.61.7"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/kyy1zhm401ns64jmclbfr476db8djrs4-air-1.61.7",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/kyy1zhm401ns64jmclbfr476db8djrs4-air-1.61.7"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/ahkvclxrxl3q4mw216ka6aff7dhcdq6d-air-1.61.7",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/ahkvclxrxl3q4mw216ka6aff7dhcdq6d-air-1.61.7"
+        }
+      }
+    },
     "git@latest": {
       "last_modified": "2025-03-11T17:52:14Z",
       "resolved": "github:NixOS/nixpkgs/0d534853a55b5d02a4ababa1d71921ce8f0aee4c#git",

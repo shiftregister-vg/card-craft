@@ -5,14 +5,21 @@ import (
 	"net/http"
 	"path/filepath"
 
+	"github.com/shiftregister-vg/card-craft/internal/auth"
+	"github.com/shiftregister-vg/card-craft/internal/cards"
 	"github.com/shiftregister-vg/card-craft/internal/config"
 	"github.com/shiftregister-vg/card-craft/internal/database"
 	"github.com/shiftregister-vg/card-craft/internal/graph"
 	"github.com/shiftregister-vg/card-craft/internal/graph/generated"
 	"github.com/shiftregister-vg/card-craft/internal/middleware"
+	"github.com/shiftregister-vg/card-craft/internal/models"
 
 	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/lru"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
 	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/vektah/gqlparser/v2/ast"
 )
 
 func main() {
@@ -42,13 +49,42 @@ func main() {
 		log.Fatalf("Error creating rate limiter: %v", err)
 	}
 
+	// Initialize stores
+	cardStore := models.NewCardStore(db.DB)
+	deckStore := models.NewDeckStore(db.DB)
+	userStore := models.NewUserStore(db.DB)
+
+	// Initialize services
+	authService := auth.NewService(cfg.JWTSecret, userStore)
+	searchService := cards.NewSearchService(cardStore)
+
 	// Create GraphQL server
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: graph.NewResolver(nil, nil, nil)}))
+	schema := generated.NewExecutableSchema(generated.Config{
+		Resolvers: graph.NewResolver(authService, cardStore, deckStore, searchService),
+	})
+
+	// Create GraphQL handler with recommended configuration
+	graphqlHandler := handler.New(schema)
+	graphqlHandler.AddTransport(transport.Options{})
+	graphqlHandler.AddTransport(transport.GET{})
+	graphqlHandler.AddTransport(transport.POST{})
+	graphqlHandler.AddTransport(transport.MultipartForm{})
+
+	// Configure query caching
+	graphqlHandler.SetQueryCache(lru.New[*ast.QueryDocument](1000))
+
+	// Enable introspection
+	graphqlHandler.Use(extension.Introspection{})
+
+	// Enable automatic persisted queries
+	graphqlHandler.Use(extension.AutomaticPersistedQuery{
+		Cache: lru.New[string](100),
+	})
 
 	// Create HTTP server with middleware
 	mux := http.NewServeMux()
 	mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	mux.Handle("/query", authMiddleware.Middleware(rateLimitMiddleware.Middleware(srv)))
+	mux.Handle("/query", authMiddleware.Middleware(rateLimitMiddleware.Middleware(graphqlHandler)))
 
 	// Start server
 	log.Printf("Server running on http://localhost:%s", cfg.Port)
