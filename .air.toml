@@ -4,7 +4,7 @@ tmp_dir = ".devbox/bin/svc"
 
 [build]
 args_bin = []
-bin = ";export $(grep -v '^#' ./.env | xargs); .devbox/bin/svc/server"
+bin = ";export $(grep -v '^#' ./.env.localhost | xargs); .devbox/bin/svc/server"
 cmd = "go build -o .devbox/bin/svc/server cmd/server/main.go"
 delay = 1000
 exclude_dir = []
