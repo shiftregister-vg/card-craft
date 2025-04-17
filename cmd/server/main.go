@@ -42,17 +42,17 @@ func main() {
 		log.Fatalf("Error running migrations: %v", err)
 	}
 
-	// Initialize middleware
-	authMiddleware := middleware.NewAuthMiddleware(cfg.JWTSecret)
-	rateLimitMiddleware, err := middleware.NewRateLimitMiddleware(cfg.RateLimit, cfg.RateLimitPeriod.String())
-	if err != nil {
-		log.Fatalf("Error creating rate limiter: %v", err)
-	}
-
 	// Initialize stores
 	cardStore := models.NewCardStore(db.DB)
 	deckStore := models.NewDeckStore(db.DB)
 	userStore := models.NewUserStore(db.DB)
+
+	// Initialize middleware
+	authMiddleware := middleware.NewAuthMiddleware(cfg.JWTSecret, userStore)
+	rateLimitMiddleware, err := middleware.NewRateLimitMiddleware(cfg.RateLimit, cfg.RateLimitPeriod.String())
+	if err != nil {
+		log.Fatalf("Error creating rate limiter: %v", err)
+	}
 
 	// Initialize services
 	authService := auth.NewService(cfg.JWTSecret, userStore)

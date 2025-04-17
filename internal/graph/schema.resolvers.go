@@ -93,13 +93,13 @@ func (r *deckCardResolver) Card(ctx context.Context, obj *models.DeckCard) (*mod
 }
 
 // Register is the resolver for the register field.
-func (r *mutationResolver) Register(ctx context.Context, email string, password string) (*models.AuthPayload, error) {
-	return r.authService.Register(email, password)
+func (r *mutationResolver) Register(ctx context.Context, username string, email string, password string) (*models.AuthPayload, error) {
+	return r.authService.Register(username, email, password)
 }
 
 // Login is the resolver for the login field.
-func (r *mutationResolver) Login(ctx context.Context, email string, password string) (*models.AuthPayload, error) {
-	return r.authService.Login(email, password)
+func (r *mutationResolver) Login(ctx context.Context, identifier string, password string) (*models.AuthPayload, error) {
+	return r.authService.Login(identifier, password)
 }
 
 // RefreshToken is the resolver for the refreshToken field.
@@ -448,6 +448,15 @@ func (r *queryResolver) DeckCards(ctx context.Context, deckID string) ([]*models
 	}
 
 	return r.deckStore.GetCards(uuid)
+}
+
+// Me is the resolver for the me field.
+func (r *queryResolver) Me(ctx context.Context) (*models.User, error) {
+	user := auth.GetUserFromContext(ctx)
+	if user == nil {
+		return nil, auth.ErrUserNotFound
+	}
+	return user, nil
 }
 
 // ID is the resolver for the id field.

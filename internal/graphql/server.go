@@ -50,10 +50,12 @@ func NewServer(resolver *graph.Resolver) http.Handler {
 
 	// Create CORS middleware
 	c := cors.New(cors.Options{
-		AllowedOrigins:   []string{"*"},
+		AllowedOrigins:   []string{"http://localhost:5173"},
 		AllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-		AllowedHeaders:   []string{"Content-Type", "Authorization"},
+		AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Requested-With", "Accept"},
 		AllowCredentials: true,
+		ExposedHeaders:   []string{"Set-Cookie"},
+		Debug:            true,
 	})
 
 	// Create the playground handler

@@ -15,6 +15,8 @@ import (
 var (
 	ErrInvalidCredentials = errors.New("invalid credentials")
 	ErrUserNotFound       = errors.New("user not found")
+	ErrEmailTaken         = errors.New("email already taken")
+	ErrUsernameTaken      = errors.New("username already taken")
 )
 
 type Service struct {
@@ -92,7 +94,25 @@ func (s *Service) Authenticate(user *models.User, password string) error {
 }
 
 // Register handles user registration
-func (s *Service) Register(email string, password string) (*models.AuthPayload, error) {
+func (s *Service) Register(username string, email string, password string) (*models.AuthPayload, error) {
+	// Check if email is already taken
+	existingUser, err := s.UserStore.FindByEmail(email)
+	if err != nil {
+		return nil, err
+	}
+	if existingUser != nil {
+		return nil, ErrEmailTaken
+	}
+
+	// Check if username is already taken
+	existingUser, err = s.UserStore.FindByUsername(username)
+	if err != nil {
+		return nil, err
+	}
+	if existingUser != nil {
+		return nil, ErrUsernameTaken
+	}
+
 	// Hash the password
 	hashedPassword, err := s.HashPassword(password)
 	if err != nil {
@@ -102,6 +122,7 @@ func (s *Service) Register(email string, password string) (*models.AuthPayload, 
 	// Create new user
 	user := &models.User{
 		ID:           uuid.New(),
+		Username:     username,
 		Email:        email,
 		PasswordHash: hashedPassword,
 	}
@@ -123,12 +144,23 @@ func (s *Service) Register(email string, password string) (*models.AuthPayload, 
 	}, nil
 }
 
-// Login handles user login
-func (s *Service) Login(email string, password string) (*models.AuthPayload, error) {
-	// Find user by email
-	user, err := s.UserStore.FindByEmail(email)
+// Login handles user login with either username or email
+func (s *Service) Login(identifier string, password string) (*models.AuthPayload, error) {
+	var user *models.User
+	var err error
+
+	// Try to find user by email first
+	user, err = s.UserStore.FindByEmail(identifier)
 	if err != nil {
 		return nil, err
+	}
+
+	// If not found by email, try username
+	if user == nil {
+		user, err = s.UserStore.FindByUsername(identifier)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	// Authenticate user

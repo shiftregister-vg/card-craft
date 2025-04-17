@@ -1,13 +1,18 @@
+import { Provider as UrqlProvider } from 'urql';
+import { json, LoaderFunctionArgs } from '@remix-run/node';
 import {
   Links,
   Meta,
   Outlet,
   Scripts,
   ScrollRestoration,
-} from "@remix-run/react";
+  useLoaderData,
+} from '@remix-run/react';
 import type { LinksFunction } from "@remix-run/node";
-import { ApolloProvider } from "@apollo/client/react/react.cjs";
-import { getApolloClient } from './lib/apollo';
+import { createClient, ssrExchange, cacheExchange, fetchExchange } from '@urql/core';
+import { AuthProvider, useAuth } from './context/auth.js';
+import Navigation from './components/Navigation.js';
+import React from 'react';
 
 import "./tailwind.css";
 
@@ -24,7 +29,90 @@ export const links: LinksFunction = () => [
   },
 ];
 
-export function Layout({ children }: { children: React.ReactNode }) {
+export async function loader({ request }: LoaderFunctionArgs) {
+  const ssr = ssrExchange();
+
+  // Get the token from cookies
+  const cookie = request.headers.get('Cookie');
+  const token = cookie
+    ?.split('; ')
+    .find(row => row.startsWith('token='))
+    ?.split('=')[1];
+
+  const client = createClient({
+    url: 'http://localhost:8080/query',
+    exchanges: [cacheExchange, ssr, fetchExchange],
+    fetchOptions: {
+      credentials: 'include',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      },
+    },
+  });
+
+  let user = null;
+  if (token) {
+    try {
+      const result = await client.query(`
+        query Me {
+          me {
+            id
+            username
+            email
+          }
+        }
+      `, {}).toPromise();
+
+      if (result.data?.me) {
+        user = result.data.me;
+      }
+    } catch (err) {
+      console.error('Error fetching user data:', err);
+    }
+  }
+
+  return json({
+    urqlState: ssr.extractData(),
+    user,
+  });
+}
+
+function ClientUrqlProvider({ children }: { children: React.ReactNode }) {
+  const { urqlState } = useLoaderData<typeof loader>();
+  const ssr = ssrExchange({ initialState: urqlState });
+  
+  const client = createClient({
+    url: 'http://localhost:8080/query',
+    exchanges: [cacheExchange, ssr, fetchExchange],
+    fetchOptions: () => {
+      const token = document.cookie
+        .split('; ')
+        .find(row => row.startsWith('token='))
+        ?.split('=')[1];
+
+      return {
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+      };
+    },
+  });
+
+  return <UrqlProvider value={client}>{children}</UrqlProvider>;
+}
+
+function AppWithAuth() {
+  const { user } = useLoaderData<typeof loader>();
+  const { setUser } = useAuth();
+
+  // Set the user in the auth context when it changes
+  React.useEffect(() => {
+    setUser(user);
+  }, [user, setUser]);
+
   return (
     <html lang="en">
       <head>
@@ -34,7 +122,10 @@ export function Layout({ children }: { children: React.ReactNode }) {
         <Links />
       </head>
       <body>
-        {children}
+        <ClientUrqlProvider>
+          {user !== undefined && <Navigation />}
+          <Outlet />
+        </ClientUrqlProvider>
         <ScrollRestoration />
         <Scripts />
       </body>
@@ -43,11 +134,9 @@ export function Layout({ children }: { children: React.ReactNode }) {
 }
 
 export default function App() {
-  const client = getApolloClient();
-  
   return (
-    <ApolloProvider client={client}>
-      <Outlet />
-    </ApolloProvider>
+    <AuthProvider>
+      <AppWithAuth />
+    </AuthProvider>
   );
 }

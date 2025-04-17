@@ -105,6 +105,30 @@ func (s *UserStore) FindByEmail(email string) (*User, error) {
 	return user, err
 }
 
+func (s *UserStore) FindByUsername(username string) (*User, error) {
+	user := &User{}
+	query := `
+		SELECT id, username, email, password_hash, created_at, updated_at
+		FROM users
+		WHERE username = $1
+	`
+
+	err := s.db.QueryRow(query, username).Scan(
+		&user.ID,
+		&user.Username,
+		&user.Email,
+		&user.PasswordHash,
+		&user.CreatedAt,
+		&user.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+
+	return user, err
+}
+
 func (s *UserStore) Update(user *User) error {
 	query := `
 		UPDATE users

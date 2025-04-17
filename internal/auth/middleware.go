@@ -21,12 +21,6 @@ const (
 func Middleware(service *Service) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			// Skip authentication for GET requests to /graphql
-			if r.Method == http.MethodGet && r.URL.Path == "/graphql" {
-				next.ServeHTTP(w, r)
-				return
-			}
-
 			// Get the Authorization header
 			authHeader := r.Header.Get("Authorization")
 			if authHeader == "" {

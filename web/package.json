@@ -11,15 +11,18 @@
     "typecheck": "tsc"
   },
   "dependencies": {
-    "@apollo/client": "^3.13.7",
+    "@headlessui/react": "^2.2.2",
     "@remix-run/node": "^2.16.5",
     "@remix-run/react": "^2.16.5",
     "@remix-run/serve": "^2.16.5",
+    "@urql/core": "^5.0.0",
+    "@urql/exchange-graphcache": "^7.2.3",
     "graphql": "^16.10.0",
     "graphql-tag": "^2.12.6",
     "isbot": "^4.1.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "urql": "^4.2.2"
   },
   "devDependencies": {
     "@remix-run/dev": "^2.16.5",
