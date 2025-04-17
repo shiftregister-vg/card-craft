@@ -23,15 +23,10 @@ A web-based application for managing and building custom decks for various Tradi
 ## Getting Started
 
 ### Prerequisites
-1. Install Devbox:
-   ```bash
-   curl -fsSL https://get.jetpack.io/devbox | bash
-   ```
-
-2. Node.js and pnpm (for frontend development)
-   ```bash
-   npm install -g pnpm
-   ```
+Install Devbox:
+```bash
+curl -fsSL https://get.jetpack.io/devbox | bash
+```
 
 ### Setup
 
