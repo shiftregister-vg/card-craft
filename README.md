@@ -62,15 +62,37 @@ Once running, you can access:
 ```
 .
 ├── cmd/                # Application entry points
-├── internal/          # Private application code
-│   ├── auth/         # Authentication logic
-│   ├── database/     # Database models and migrations
-│   ├── handlers/     # HTTP handlers
-│   ├── importers/    # Card import logic
-│   └── services/     # Business logic
-├── pkg/              # Public packages
-├── web/              # Frontend code
-└── migrations/       # Database migrations
+│   ├── seed/         # Database seeding tool
+│   └── server/       # Main server application
+├── docs/             # Documentation files
+├── internal/         # Private application code
+│   ├── auth/        # Authentication and authorization
+│   ├── cards/       # Card management logic
+│   ├── config/      # Application configuration
+│   ├── database/    # Database connections and utilities
+│   ├── graph/       # GraphQL schema and resolvers
+│   ├── handlers/    # HTTP request handlers
+│   ├── importers/   # Card import implementations
+│   ├── middleware/  # HTTP/GraphQL middleware
+│   ├── models/      # Database models
+│   ├── seed/        # Seeding utilities
+│   ├── server/      # Server setup and configuration
+│   ├── services/    # Business logic services
+│   ├── types/       # Common type definitions
+│   └── utils/       # Shared utilities
+├── migrations/      # Database migration files
+├── pkg/            # Public packages
+├── scripts/        # Utility scripts
+├── tools/          # Development tools
+└── web/           # Frontend application (Remix)
+    ├── app/       # Application code
+    │   ├── components/  # React components
+    │   ├── context/    # React context providers
+    │   ├── graphql/    # GraphQL queries and mutations
+    │   ├── lib/        # Utility functions and configs
+    │   ├── routes/     # Remix routes
+    │   └── styles/     # CSS and styling
+    └── public/    # Static assets
 ```
 
 ## Development Guide
