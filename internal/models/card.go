@@ -203,3 +203,35 @@ func (s *CardStore) Delete(id uuid.UUID) error {
 	_, err := s.db.Exec(query, id)
 	return err
 }
+
+func (s *CardStore) FindByGameSetAndNumber(game string, setCode string, number string) (*Card, error) {
+	var card Card
+
+	query := `
+		SELECT id, name, game, set_code, set_name, number, rarity, image_url, created_at, updated_at
+		FROM cards
+		WHERE game = $1 AND set_code = $2 AND number = $3
+	`
+
+	err := s.db.QueryRow(query, game, setCode, number).Scan(
+		&card.ID,
+		&card.Name,
+		&card.Game,
+		&card.SetCode,
+		&card.SetName,
+		&card.Number,
+		&card.Rarity,
+		&card.ImageURL,
+		&card.CreatedAt,
+		&card.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return &card, nil
+}

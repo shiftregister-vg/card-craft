@@ -9,9 +9,11 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/google/uuid"
 	"github.com/shiftregister-vg/card-craft/internal/auth"
 	"github.com/shiftregister-vg/card-craft/internal/graph/generated"
+	"github.com/shiftregister-vg/card-craft/internal/graph/model"
 	"github.com/shiftregister-vg/card-craft/internal/models"
 	"github.com/shiftregister-vg/card-craft/internal/types"
 	"github.com/shiftregister-vg/card-craft/internal/utils"
@@ -19,77 +21,132 @@ import (
 
 // ID is the resolver for the id field.
 func (r *cardResolver) ID(ctx context.Context, obj *models.Card) (string, error) {
-	return obj.ID.String(), nil
+	panic(fmt.Errorf("not implemented: ID - id"))
 }
 
 // CreatedAt is the resolver for the createdAt field.
 func (r *cardResolver) CreatedAt(ctx context.Context, obj *models.Card) (string, error) {
-	return obj.CreatedAt.Format(time.RFC3339), nil
+	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
 }
 
 // UpdatedAt is the resolver for the updatedAt field.
 func (r *cardResolver) UpdatedAt(ctx context.Context, obj *models.Card) (string, error) {
-	return obj.UpdatedAt.Format(time.RFC3339), nil
+	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
 }
 
 // TotalCount is the resolver for the totalCount field.
 func (r *cardSearchResultResolver) TotalCount(ctx context.Context, obj *types.CardSearchResult) (int, error) {
-	return obj.Total, nil
+	panic(fmt.Errorf("not implemented: TotalCount - totalCount"))
 }
 
 // ID is the resolver for the id field.
-func (r *deckResolver) ID(ctx context.Context, obj *models.Deck) (string, error) {
+func (r *collectionResolver) ID(ctx context.Context, obj *models.Collection) (string, error) {
 	return obj.ID.String(), nil
 }
 
 // UserID is the resolver for the userId field.
-func (r *deckResolver) UserID(ctx context.Context, obj *models.Deck) (string, error) {
+func (r *collectionResolver) UserID(ctx context.Context, obj *models.Collection) (string, error) {
 	return obj.UserID.String(), nil
 }
 
-// CreatedAt is the resolver for the Deck.CreatedAt field
-func (r *deckResolver) CreatedAt(ctx context.Context, obj *models.Deck) (string, error) {
+// Cards is the resolver for the cards field.
+func (r *collectionResolver) Cards(ctx context.Context, obj *models.Collection) ([]*models.CollectionCard, error) {
+	return r.collectionStore.GetCards(obj.ID)
+}
+
+// CreatedAt is the resolver for the createdAt field.
+func (r *collectionResolver) CreatedAt(ctx context.Context, obj *models.Collection) (string, error) {
 	return obj.CreatedAt.Format(time.RFC3339), nil
+}
+
+// UpdatedAt is the resolver for the updatedAt field.
+func (r *collectionResolver) UpdatedAt(ctx context.Context, obj *models.Collection) (string, error) {
+	return obj.UpdatedAt.Format(time.RFC3339), nil
+}
+
+// ID is the resolver for the id field.
+func (r *collectionCardResolver) ID(ctx context.Context, obj *models.CollectionCard) (string, error) {
+	return obj.ID.String(), nil
+}
+
+// CollectionID is the resolver for the collectionId field.
+func (r *collectionCardResolver) CollectionID(ctx context.Context, obj *models.CollectionCard) (string, error) {
+	return obj.CollectionID.String(), nil
+}
+
+// CardID is the resolver for the cardId field.
+func (r *collectionCardResolver) CardID(ctx context.Context, obj *models.CollectionCard) (string, error) {
+	return obj.CardID.String(), nil
+}
+
+// Card is the resolver for the card field.
+func (r *collectionCardResolver) Card(ctx context.Context, obj *models.CollectionCard) (*models.Card, error) {
+	return r.cardStore.FindByID(obj.CardID)
+}
+
+// CreatedAt is the resolver for the createdAt field.
+func (r *collectionCardResolver) CreatedAt(ctx context.Context, obj *models.CollectionCard) (string, error) {
+	return obj.CreatedAt.Format(time.RFC3339), nil
+}
+
+// UpdatedAt is the resolver for the updatedAt field.
+func (r *collectionCardResolver) UpdatedAt(ctx context.Context, obj *models.CollectionCard) (string, error) {
+	return obj.UpdatedAt.Format(time.RFC3339), nil
+}
+
+// ID is the resolver for the id field.
+func (r *deckResolver) ID(ctx context.Context, obj *models.Deck) (string, error) {
+	panic(fmt.Errorf("not implemented: ID - id"))
+}
+
+// UserID is the resolver for the userId field.
+func (r *deckResolver) UserID(ctx context.Context, obj *models.Deck) (string, error) {
+	panic(fmt.Errorf("not implemented: UserID - userId"))
+}
+
+// CreatedAt is the resolver for the createdAt field.
+func (r *deckResolver) CreatedAt(ctx context.Context, obj *models.Deck) (string, error) {
+	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
 }
 
 // UpdatedAt is the resolver for the updatedAt field.
 func (r *deckResolver) UpdatedAt(ctx context.Context, obj *models.Deck) (string, error) {
-	return obj.UpdatedAt.Format(time.RFC3339), nil
+	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
 }
 
 // Cards is the resolver for the cards field.
 func (r *deckResolver) Cards(ctx context.Context, obj *models.Deck) ([]*models.DeckCard, error) {
-	return r.deckStore.GetCards(obj.ID)
+	panic(fmt.Errorf("not implemented: Cards - cards"))
 }
 
 // ID is the resolver for the id field.
 func (r *deckCardResolver) ID(ctx context.Context, obj *models.DeckCard) (string, error) {
-	return obj.ID.String(), nil
+	panic(fmt.Errorf("not implemented: ID - id"))
 }
 
 // DeckID is the resolver for the deckId field.
 func (r *deckCardResolver) DeckID(ctx context.Context, obj *models.DeckCard) (string, error) {
-	return obj.DeckID.String(), nil
+	panic(fmt.Errorf("not implemented: DeckID - deckId"))
 }
 
 // CardID is the resolver for the cardId field.
 func (r *deckCardResolver) CardID(ctx context.Context, obj *models.DeckCard) (string, error) {
-	return obj.CardID.String(), nil
+	panic(fmt.Errorf("not implemented: CardID - cardId"))
 }
 
 // CreatedAt is the resolver for the createdAt field.
 func (r *deckCardResolver) CreatedAt(ctx context.Context, obj *models.DeckCard) (string, error) {
-	return obj.CreatedAt.Format(time.RFC3339), nil
+	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
 }
 
 // UpdatedAt is the resolver for the updatedAt field.
 func (r *deckCardResolver) UpdatedAt(ctx context.Context, obj *models.DeckCard) (string, error) {
-	return obj.UpdatedAt.Format(time.RFC3339), nil
+	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
 }
 
 // Card is the resolver for the card field.
 func (r *deckCardResolver) Card(ctx context.Context, obj *models.DeckCard) (*models.Card, error) {
-	return r.cardStore.FindByID(obj.CardID)
+	panic(fmt.Errorf("not implemented: Card - card"))
 }
 
 // Register is the resolver for the register field.
@@ -99,7 +156,19 @@ func (r *mutationResolver) Register(ctx context.Context, username string, email 
 
 // Login is the resolver for the login field.
 func (r *mutationResolver) Login(ctx context.Context, identifier string, password string) (*models.AuthPayload, error) {
-	return r.authService.Login(identifier, password)
+	fmt.Printf("GraphQL Login resolver called with identifier: %s\n", identifier)
+
+	payload, err := r.authService.Login(identifier, password)
+	if err != nil {
+		fmt.Printf("Login resolver error: %v\n", err)
+		if err == auth.ErrInvalidCredentials {
+			return nil, fmt.Errorf("invalid credentials")
+		}
+		return nil, err
+	}
+
+	fmt.Printf("Login resolver successful for identifier: %s\n", identifier)
+	return payload, nil
 }
 
 // RefreshToken is the resolver for the refreshToken field.
@@ -109,94 +178,78 @@ func (r *mutationResolver) RefreshToken(ctx context.Context) (*models.AuthPayloa
 
 // CreateCard is the resolver for the createCard field.
 func (r *mutationResolver) CreateCard(ctx context.Context, input types.CardInput) (*models.Card, error) {
-	card := &models.Card{
-		ID:       uuid.New(),
-		Name:     input.Name,
-		Game:     input.Game,
-		SetCode:  input.SetCode,
-		SetName:  input.SetName,
-		Number:   input.Number,
-		Rarity:   input.Rarity,
-		ImageURL: utils.DerefString(input.ImageURL),
-	}
-
-	if err := r.cardStore.Create(card); err != nil {
-		return nil, err
-	}
-
-	return card, nil
+	panic(fmt.Errorf("not implemented: CreateCard - createCard"))
 }
 
 // UpdateCard is the resolver for the updateCard field.
 func (r *mutationResolver) UpdateCard(ctx context.Context, id string, input types.CardInput) (*models.Card, error) {
-	uuid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, err
-	}
-
-	card, err := r.cardStore.FindByID(uuid)
-	if err != nil {
-		return nil, err
-	}
-
-	if card == nil {
-		return nil, fmt.Errorf("card not found")
-	}
-
-	card.Name = input.Name
-	card.Game = input.Game
-	card.SetCode = input.SetCode
-	card.SetName = input.SetName
-	card.Number = input.Number
-	card.Rarity = input.Rarity
-	card.ImageURL = utils.DerefString(input.ImageURL)
-
-	if err := r.cardStore.Update(card); err != nil {
-		return nil, err
-	}
-
-	return card, nil
+	panic(fmt.Errorf("not implemented: UpdateCard - updateCard"))
 }
 
 // DeleteCard is the resolver for the deleteCard field.
 func (r *mutationResolver) DeleteCard(ctx context.Context, id string) (bool, error) {
-	uuid, err := uuid.Parse(id)
-	if err != nil {
-		return false, err
-	}
-
-	if err := r.cardStore.Delete(uuid); err != nil {
-		return false, err
-	}
-
-	return true, nil
+	panic(fmt.Errorf("not implemented: DeleteCard - deleteCard"))
 }
 
-// CreateDeck is the resolver for the Mutation.CreateDeck field
+// CreateDeck is the resolver for the createDeck field.
 func (r *mutationResolver) CreateDeck(ctx context.Context, input types.DeckInput) (*models.Deck, error) {
+	panic(fmt.Errorf("not implemented: CreateDeck - createDeck"))
+}
+
+// UpdateDeck is the resolver for the updateDeck field.
+func (r *mutationResolver) UpdateDeck(ctx context.Context, id string, input types.DeckInput) (*models.Deck, error) {
+	panic(fmt.Errorf("not implemented: UpdateDeck - updateDeck"))
+}
+
+// DeleteDeck is the resolver for the deleteDeck field.
+func (r *mutationResolver) DeleteDeck(ctx context.Context, id string) (bool, error) {
+	panic(fmt.Errorf("not implemented: DeleteDeck - deleteDeck"))
+}
+
+// AddCardToDeck is the resolver for the addCardToDeck field.
+func (r *mutationResolver) AddCardToDeck(ctx context.Context, deckID string, input types.DeckCardInput) (*models.DeckCard, error) {
+	panic(fmt.Errorf("not implemented: AddCardToDeck - addCardToDeck"))
+}
+
+// UpdateDeckCard is the resolver for the updateDeckCard field.
+func (r *mutationResolver) UpdateDeckCard(ctx context.Context, id string, quantity int) (*models.DeckCard, error) {
+	panic(fmt.Errorf("not implemented: UpdateDeckCard - updateDeckCard"))
+}
+
+// RemoveCardFromDeck is the resolver for the removeCardFromDeck field.
+func (r *mutationResolver) RemoveCardFromDeck(ctx context.Context, id string) (bool, error) {
+	panic(fmt.Errorf("not implemented: RemoveCardFromDeck - removeCardFromDeck"))
+}
+
+// ImportCollection is the resolver for the importCollection field.
+func (r *mutationResolver) ImportCollection(ctx context.Context, input model.ImportSource, file graphql.Upload) (*model.ImportResult, error) {
+	panic(fmt.Errorf("not implemented: ImportCollection - importCollection"))
+}
+
+// CreateCollection is the resolver for the createCollection field.
+func (r *mutationResolver) CreateCollection(ctx context.Context, input model.CollectionInput) (*models.Collection, error) {
 	user := auth.GetUserFromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	deck := &models.Deck{
+	collection := &models.Collection{
 		ID:          uuid.New(),
 		UserID:      user.ID,
 		Name:        input.Name,
 		Description: utils.DerefString(input.Description),
 		Game:        input.Game,
-		IsPublic:    false,
 	}
 
-	if err := r.deckStore.Create(deck); err != nil {
+	if err := r.collectionStore.Create(collection); err != nil {
 		return nil, err
 	}
 
-	return deck, nil
+	return collection, nil
 }
 
-// UpdateDeck is the resolver for the Mutation.UpdateDeck field
-func (r *mutationResolver) UpdateDeck(ctx context.Context, id string, input types.DeckInput) (*models.Deck, error) {
+// UpdateCollection is the resolver for the updateCollection field.
+func (r *mutationResolver) UpdateCollection(ctx context.Context, id string, input model.CollectionInput) (*models.Collection, error) {
 	user := auth.GetUserFromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("not authenticated")
@@ -207,32 +260,32 @@ func (r *mutationResolver) UpdateDeck(ctx context.Context, id string, input type
 		return nil, err
 	}
 
-	deck, err := r.deckStore.FindByID(uuid)
+	collection, err := r.collectionStore.FindByID(uuid)
 	if err != nil {
 		return nil, err
 	}
 
-	if deck == nil {
-		return nil, fmt.Errorf("deck not found")
+	if collection == nil {
+		return nil, fmt.Errorf("collection not found")
 	}
 
-	if deck.UserID != user.ID {
+	if collection.UserID != user.ID {
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	deck.Name = input.Name
-	deck.Description = utils.DerefString(input.Description)
-	deck.Game = input.Game
+	collection.Name = input.Name
+	collection.Description = utils.DerefString(input.Description)
+	collection.Game = input.Game
 
-	if err := r.deckStore.Update(deck); err != nil {
+	if err := r.collectionStore.Update(collection); err != nil {
 		return nil, err
 	}
 
-	return deck, nil
+	return collection, nil
 }
 
-// DeleteDeck is the resolver for the deleteDeck field.
-func (r *mutationResolver) DeleteDeck(ctx context.Context, id string) (bool, error) {
+// DeleteCollection is the resolver for the deleteCollection field.
+func (r *mutationResolver) DeleteCollection(ctx context.Context, id string) (bool, error) {
 	user := auth.GetUserFromContext(ctx)
 	if user == nil {
 		return false, fmt.Errorf("not authenticated")
@@ -243,36 +296,36 @@ func (r *mutationResolver) DeleteDeck(ctx context.Context, id string) (bool, err
 		return false, err
 	}
 
-	deck, err := r.deckStore.FindByID(uuid)
-	if err != nil {
-		return false, err
-	}
-
-	if deck == nil {
-		return false, fmt.Errorf("deck not found")
-	}
-
-	if deck.UserID != user.ID {
-		return false, fmt.Errorf("unauthorized")
-	}
-
-	if err := r.deckStore.Delete(uuid); err != nil {
+	if err := r.collectionStore.Delete(uuid, user.ID); err != nil {
 		return false, err
 	}
 
 	return true, nil
 }
 
-// AddCardToDeck is the resolver for the Mutation.AddCardToDeck field
-func (r *mutationResolver) AddCardToDeck(ctx context.Context, deckID string, input types.DeckCardInput) (*models.DeckCard, error) {
+// AddCardToCollection is the resolver for the addCardToCollection field.
+func (r *mutationResolver) AddCardToCollection(ctx context.Context, collectionID string, input model.CollectionCardInput) (*models.CollectionCard, error) {
 	user := auth.GetUserFromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	deckUUID, err := uuid.Parse(deckID)
+	collectionUUID, err := uuid.Parse(collectionID)
 	if err != nil {
 		return nil, err
+	}
+
+	collection, err := r.collectionStore.FindByID(collectionUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	if collection == nil {
+		return nil, fmt.Errorf("collection not found")
+	}
+
+	if collection.UserID != user.ID {
+		return nil, fmt.Errorf("unauthorized")
 	}
 
 	cardUUID, err := uuid.Parse(input.CardID)
@@ -280,99 +333,104 @@ func (r *mutationResolver) AddCardToDeck(ctx context.Context, deckID string, inp
 		return nil, err
 	}
 
-	deck, err := r.deckStore.FindByID(deckUUID)
-	if err != nil {
+	card := &models.CollectionCard{
+		ID:           uuid.New(),
+		CollectionID: collectionUUID,
+		CardID:       cardUUID,
+		Quantity:     input.Quantity,
+		Condition:    utils.DerefString(input.Condition),
+		IsFoil:       utils.DerefBool(input.IsFoil),
+		Notes:        utils.DerefString(input.Notes),
+	}
+
+	if err := r.collectionStore.AddCard(card); err != nil {
 		return nil, err
 	}
 
-	if deck == nil {
-		return nil, fmt.Errorf("deck not found")
-	}
-
-	if deck.UserID != user.ID {
-		return nil, fmt.Errorf("unauthorized")
-	}
-
-	if err := r.deckStore.AddCard(deckUUID, cardUUID, input.Quantity); err != nil {
-		return nil, err
-	}
-
-	return &models.DeckCard{
-		DeckID:   deckUUID,
-		CardID:   cardUUID,
-		Quantity: input.Quantity,
-	}, nil
+	return card, nil
 }
 
-// UpdateDeckCard is the resolver for the updateDeckCard field.
-func (r *mutationResolver) UpdateDeckCard(ctx context.Context, id string, quantity int) (*models.DeckCard, error) {
+// UpdateCollectionCard is the resolver for the updateCollectionCard field.
+func (r *mutationResolver) UpdateCollectionCard(ctx context.Context, id string, input model.CollectionCardInput) (*models.CollectionCard, error) {
 	user := auth.GetUserFromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	uuid, err := uuid.Parse(id)
+	cardUUID, err := uuid.Parse(id)
 	if err != nil {
 		return nil, err
 	}
 
-	deckCard, err := r.deckStore.GetDeckCard(uuid)
+	card, err := r.collectionStore.GetCard(cardUUID)
 	if err != nil {
 		return nil, err
 	}
 
-	if deckCard == nil {
-		return nil, fmt.Errorf("deck card not found")
+	if card == nil {
+		return nil, fmt.Errorf("collection card not found")
 	}
 
-	deck, err := r.deckStore.FindByID(deckCard.DeckID)
+	collection, err := r.collectionStore.FindByID(card.CollectionID)
 	if err != nil {
 		return nil, err
 	}
 
-	if deck.UserID != user.ID {
+	if collection == nil {
+		return nil, fmt.Errorf("collection not found")
+	}
+
+	if collection.UserID != user.ID {
 		return nil, fmt.Errorf("unauthorized")
 	}
 
-	if err := r.deckStore.UpdateDeckCard(uuid, quantity); err != nil {
+	card.Quantity = input.Quantity
+	card.Condition = utils.DerefString(input.Condition)
+	card.IsFoil = utils.DerefBool(input.IsFoil)
+	card.Notes = utils.DerefString(input.Notes)
+
+	if err := r.collectionStore.UpdateCard(card); err != nil {
 		return nil, err
 	}
 
-	deckCard.Quantity = quantity
-	return deckCard, nil
+	return card, nil
 }
 
-// RemoveCardFromDeck is the resolver for the removeCardFromDeck field.
-func (r *mutationResolver) RemoveCardFromDeck(ctx context.Context, id string) (bool, error) {
+// RemoveCardFromCollection is the resolver for the removeCardFromCollection field.
+func (r *mutationResolver) RemoveCardFromCollection(ctx context.Context, id string) (bool, error) {
 	user := auth.GetUserFromContext(ctx)
 	if user == nil {
 		return false, fmt.Errorf("not authenticated")
 	}
 
-	uuid, err := uuid.Parse(id)
+	cardUUID, err := uuid.Parse(id)
 	if err != nil {
 		return false, err
 	}
 
-	deckCard, err := r.deckStore.GetDeckCard(uuid)
+	card, err := r.collectionStore.GetCard(cardUUID)
 	if err != nil {
 		return false, err
 	}
 
-	if deckCard == nil {
-		return false, fmt.Errorf("deck card not found")
+	if card == nil {
+		return false, fmt.Errorf("collection card not found")
 	}
 
-	deck, err := r.deckStore.FindByID(deckCard.DeckID)
+	collection, err := r.collectionStore.FindByID(card.CollectionID)
 	if err != nil {
 		return false, err
 	}
 
-	if deck.UserID != user.ID {
+	if collection == nil {
+		return false, fmt.Errorf("collection not found")
+	}
+
+	if collection.UserID != user.ID {
 		return false, fmt.Errorf("unauthorized")
 	}
 
-	if err := r.deckStore.RemoveCard(deckCard.DeckID, deckCard.CardID); err != nil {
+	if err := r.collectionStore.RemoveCard(cardUUID); err != nil {
 		return false, err
 	}
 
@@ -381,82 +439,78 @@ func (r *mutationResolver) RemoveCardFromDeck(ctx context.Context, id string) (b
 
 // Card is the resolver for the card field.
 func (r *queryResolver) Card(ctx context.Context, id string) (*models.Card, error) {
-	uuid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.cardStore.FindByID(uuid)
+	panic(fmt.Errorf("not implemented: Card - card"))
 }
 
 // CardsByGame is the resolver for the cardsByGame field.
 func (r *queryResolver) CardsByGame(ctx context.Context, game string) ([]*models.Card, error) {
-	return r.cardStore.FindByGame(game)
+	panic(fmt.Errorf("not implemented: CardsByGame - cardsByGame"))
 }
 
 // CardsBySet is the resolver for the cardsBySet field.
 func (r *queryResolver) CardsBySet(ctx context.Context, game string, setCode string) ([]*models.Card, error) {
-	return r.cardStore.FindBySet(game, setCode)
+	panic(fmt.Errorf("not implemented: CardsBySet - cardsBySet"))
 }
 
 // SearchCards is the resolver for the searchCards field.
 func (r *queryResolver) SearchCards(ctx context.Context, game *string, setCode *string, rarity *string, name *string, page *int, pageSize *int, sortBy *string, sortOrder *string) (*types.CardSearchResult, error) {
-	opts := types.SearchOptions{
-		Game:      utils.DerefString(game),
-		SetCode:   utils.DerefString(setCode),
-		Rarity:    utils.DerefString(rarity),
-		Name:      utils.DerefString(name),
-		Page:      utils.DerefInt(page),
-		PageSize:  utils.DerefInt(pageSize),
-		SortBy:    utils.DerefString(sortBy),
-		SortOrder: utils.DerefString(sortOrder),
-	}
-
-	return r.searchService.Search(opts)
+	panic(fmt.Errorf("not implemented: SearchCards - searchCards"))
 }
 
 // CardFilters is the resolver for the cardFilters field.
 func (r *queryResolver) CardFilters(ctx context.Context, game string) (*types.CardFilters, error) {
-	return r.searchService.GetFilters(game)
+	panic(fmt.Errorf("not implemented: CardFilters - cardFilters"))
 }
 
 // Deck is the resolver for the deck field.
 func (r *queryResolver) Deck(ctx context.Context, id string) (*models.Deck, error) {
-	uuid, err := uuid.Parse(id)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.deckStore.FindByID(uuid)
+	panic(fmt.Errorf("not implemented: Deck - deck"))
 }
 
 // MyDecks is the resolver for the myDecks field.
 func (r *queryResolver) MyDecks(ctx context.Context) ([]*models.Deck, error) {
-	user := auth.GetUserFromContext(ctx)
-	if user == nil {
-		return nil, fmt.Errorf("not authenticated")
-	}
-
-	return r.deckStore.FindByUserID(user.ID)
+	panic(fmt.Errorf("not implemented: MyDecks - myDecks"))
 }
 
 // DeckCards is the resolver for the deckCards field.
 func (r *queryResolver) DeckCards(ctx context.Context, deckID string) ([]*models.DeckCard, error) {
-	uuid, err := uuid.Parse(deckID)
-	if err != nil {
-		return nil, err
-	}
-
-	return r.deckStore.GetCards(uuid)
+	panic(fmt.Errorf("not implemented: DeckCards - deckCards"))
 }
 
 // Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*models.User, error) {
 	user := auth.GetUserFromContext(ctx)
 	if user == nil {
-		return nil, auth.ErrUserNotFound
+		return nil, fmt.Errorf("not authenticated")
 	}
 	return user, nil
+}
+
+// Collection is the resolver for the collection field.
+func (r *queryResolver) Collection(ctx context.Context, id string) (*models.Collection, error) {
+	uuid, err := uuid.Parse(id)
+	if err != nil {
+		return nil, err
+	}
+	return r.collectionStore.FindByID(uuid)
+}
+
+// MyCollections is the resolver for the myCollections field.
+func (r *queryResolver) MyCollections(ctx context.Context) ([]*models.Collection, error) {
+	user := auth.GetUserFromContext(ctx)
+	if user == nil {
+		return nil, fmt.Errorf("not authenticated")
+	}
+	return r.collectionStore.FindByUserID(user.ID)
+}
+
+// CollectionCards is the resolver for the collectionCards field.
+func (r *queryResolver) CollectionCards(ctx context.Context, collectionID string) ([]*models.CollectionCard, error) {
+	uuid, err := uuid.Parse(collectionID)
+	if err != nil {
+		return nil, err
+	}
+	return r.collectionStore.GetCards(uuid)
 }
 
 // ID is the resolver for the id field.
@@ -466,12 +520,12 @@ func (r *userResolver) ID(ctx context.Context, obj *models.User) (string, error)
 
 // CreatedAt is the resolver for the createdAt field.
 func (r *userResolver) CreatedAt(ctx context.Context, obj *models.User) (string, error) {
-	return obj.CreatedAt.Format(time.RFC3339), nil
+	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
 }
 
 // UpdatedAt is the resolver for the updatedAt field.
 func (r *userResolver) UpdatedAt(ctx context.Context, obj *models.User) (string, error) {
-	return obj.UpdatedAt.Format(time.RFC3339), nil
+	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
 }
 
 // Card returns generated.CardResolver implementation.
@@ -480,6 +534,14 @@ func (r *Resolver) Card() generated.CardResolver { return &cardResolver{r} }
 // CardSearchResult returns generated.CardSearchResultResolver implementation.
 func (r *Resolver) CardSearchResult() generated.CardSearchResultResolver {
 	return &cardSearchResultResolver{r}
+}
+
+// Collection returns generated.CollectionResolver implementation.
+func (r *Resolver) Collection() generated.CollectionResolver { return &collectionResolver{r} }
+
+// CollectionCard returns generated.CollectionCardResolver implementation.
+func (r *Resolver) CollectionCard() generated.CollectionCardResolver {
+	return &collectionCardResolver{r}
 }
 
 // Deck returns generated.DeckResolver implementation.
@@ -499,6 +561,8 @@ func (r *Resolver) User() generated.UserResolver { return &userResolver{r} }
 
 type cardResolver struct{ *Resolver }
 type cardSearchResultResolver struct{ *Resolver }
+type collectionResolver struct{ *Resolver }
+type collectionCardResolver struct{ *Resolver }
 type deckResolver struct{ *Resolver }
 type deckCardResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }

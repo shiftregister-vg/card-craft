@@ -1,27 +1,22 @@
 import { Form, useActionData, useNavigation, useSearchParams, redirect } from '@remix-run/react';
 import { json, ActionFunctionArgs } from '@remix-run/node';
-import { createClient } from 'urql';
-import { cacheExchange, fetchExchange } from '@urql/core';
-import { useEffect } from 'react';
-import { useAuth } from '../context/auth.js';
+import { gql } from '@urql/core';
+import { createServerClient } from '../lib/urql.js';
 
 interface LoginResponse {
   error?: string;
-  token?: string;
   user?: {
     id: string;
-    username: string;
     email: string;
   };
 }
 
-const LOGIN_MUTATION = `
+const LOGIN_MUTATION = gql`
   mutation Login($identifier: String!, $password: String!) {
     login(identifier: $identifier, password: $password) {
       token
       user {
         id
-        username
         email
       }
     }
@@ -30,24 +25,18 @@ const LOGIN_MUTATION = `
 
 export async function action({ request }: ActionFunctionArgs) {
   const formData = await request.formData();
-  const identifier = formData.get('identifier') as string;
-  const password = formData.get('password') as string;
-
-  // Get the redirect URL from the form data or default to dashboard
-  const redirectTo = formData.get('redirectTo') as string || '/dashboard';
-
-  const client = createClient({
-    url: 'http://localhost:8080/query',
-    exchanges: [cacheExchange, fetchExchange],
-  });
+  const identifier = formData.get("identifier") as string;
+  const password = formData.get("password") as string;
 
   try {
+    const client = createServerClient(request);
     const result = await client.mutation(LOGIN_MUTATION, {
       identifier,
       password,
     }).toPromise();
 
     if (result.error) {
+      console.error('Login error:', result.error);
       return json<LoginResponse>(
         { error: result.error.message },
         { status: 400 }
@@ -55,27 +44,24 @@ export async function action({ request }: ActionFunctionArgs) {
     }
 
     if (!result.data?.login?.token) {
+      console.error('No token in response:', result);
       return json<LoginResponse>(
-        { error: 'Invalid credentials' },
+        { error: "Invalid credentials" },
         { status: 401 }
       );
     }
 
-    // Set the token in a cookie and include user data in the response
     const headers = new Headers();
-    headers.append('Set-Cookie', `token=${result.data.login.token}; Path=/; HttpOnly`);
+    headers.append("Set-Cookie", `token=${result.data.login.token}; Path=/; HttpOnly; SameSite=Lax`);
 
-    return json(
-      { user: result.data.login.user },
-      {
-        headers,
-        status: 200,
-      }
-    );
-  } catch (err) {
+    return redirect("/", {
+      headers,
+    });
+  } catch (error) {
+    console.error('Login error:', error);
     return json<LoginResponse>(
-      { error: 'Login failed. Please check your credentials.' },
-      { status: 400 }
+      { error: "Invalid credentials" },
+      { status: 401 }
     );
   }
 }
@@ -84,16 +70,7 @@ export default function Login() {
   const actionData = useActionData<LoginResponse>();
   const navigation = useNavigation();
   const [searchParams] = useSearchParams();
-  const { setUser } = useAuth();
-  const isLoading = navigation.state === 'submitting';
-
-  useEffect(() => {
-    if (actionData?.user) {
-      setUser(actionData.user);
-      const redirectTo = searchParams.get('redirectTo') || '/dashboard';
-      window.location.href = redirectTo;
-    }
-  }, [actionData, setUser, searchParams]);
+  const isLoading = navigation.state === "submitting";
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -115,15 +92,15 @@ export default function Login() {
           <div className="rounded-md shadow-sm -space-y-px">
             <div>
               <label htmlFor="identifier" className="sr-only">
-                Username or Email
+                Email or Username
               </label>
               <input
                 id="identifier"
                 name="identifier"
                 type="text"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 bg-white rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
-                placeholder="Username or Email"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-white"
+                placeholder="Email or Username"
                 disabled={isLoading}
               />
             </div>
@@ -136,7 +113,7 @@ export default function Login() {
                 name="password"
                 type="password"
                 required
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 bg-white rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm"
+                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 focus:z-10 sm:text-sm bg-white"
                 placeholder="Password"
                 disabled={isLoading}
               />
@@ -144,8 +121,14 @@ export default function Login() {
           </div>
 
           {actionData?.error && (
-            <div className="text-red-500 text-sm text-center">
-              {actionData.error}
+            <div className="rounded-md bg-red-50 p-4">
+              <div className="flex">
+                <div className="ml-3">
+                  <h3 className="text-sm font-medium text-red-800">
+                    {actionData.error}
+                  </h3>
+                </div>
+              </div>
             </div>
           )}
 
@@ -153,13 +136,9 @@ export default function Login() {
             <button
               type="submit"
               disabled={isLoading}
-              className={`group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white ${
-                isLoading
-                  ? 'bg-indigo-400 cursor-not-allowed'
-                  : 'bg-indigo-600 hover:bg-indigo-700'
-              } focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500`}
+              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
-              {isLoading ? 'Signing in...' : 'Sign in'}
+              {isLoading ? "Signing in..." : "Sign in"}
             </button>
           </div>
         </Form>

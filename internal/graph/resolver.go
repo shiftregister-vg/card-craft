@@ -14,18 +14,26 @@ import (
 
 // Resolver is the root resolver
 type Resolver struct {
-	authService   *auth.Service
-	cardStore     *models.CardStore
-	deckStore     *models.DeckStore
-	searchService *cards.SearchService
+	authService     *auth.Service
+	cardStore       *models.CardStore
+	deckStore       *models.DeckStore
+	collectionStore *models.CollectionStore
+	searchService   *cards.SearchService
 }
 
 // NewResolver creates a new resolver
-func NewResolver(authService *auth.Service, cardStore *models.CardStore, deckStore *models.DeckStore, searchService *cards.SearchService) *Resolver {
+func NewResolver(
+	authService *auth.Service,
+	cardStore *models.CardStore,
+	deckStore *models.DeckStore,
+	collectionStore *models.CollectionStore,
+	searchService *cards.SearchService,
+) *Resolver {
 	return &Resolver{
-		authService:   authService,
-		cardStore:     cardStore,
-		deckStore:     deckStore,
-		searchService: searchService,
+		authService:     authService,
+		cardStore:       cardStore,
+		deckStore:       deckStore,
+		collectionStore: collectionStore,
+		searchService:   searchService,
 	}
 }

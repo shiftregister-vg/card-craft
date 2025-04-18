@@ -78,6 +78,44 @@ type CardFilters {
   rarities: [String!]!
 }
 
+type Collection {
+  id: ID!
+  userId: ID!
+  name: String!
+  description: String
+  game: String!
+  cards: [CollectionCard!]!
+  createdAt: String!
+  updatedAt: String!
+}
+
+type CollectionCard {
+  id: ID!
+  collectionId: ID!
+  cardId: ID!
+  card: Card!
+  quantity: Int!
+  condition: String
+  isFoil: Boolean
+  notes: String
+  createdAt: String!
+  updatedAt: String!
+}
+
+input CollectionInput {
+  name: String!
+  description: String
+  game: String!
+}
+
+input CollectionCardInput {
+  cardId: ID!
+  quantity: Int!
+  condition: String
+  isFoil: Boolean
+  notes: String
+}
+
 type Query {
   # Card queries
   card(id: ID!): Card
@@ -102,6 +140,11 @@ type Query {
 
   # User queries
   me: User
+
+  # Collection queries
+  collection(id: ID!): Collection
+  myCollections: [Collection!]!
+  collectionCards(collectionId: ID!): [CollectionCard!]!
 }
 
 type Mutation {
@@ -122,4 +165,30 @@ type Mutation {
   addCardToDeck(deckId: ID!, input: DeckCardInput!): DeckCard!
   updateDeckCard(id: ID!, quantity: Int!): DeckCard!
   removeCardFromDeck(id: ID!): Boolean!
-} 
+  
+  # Import mutations
+  importCollection(input: ImportSource!, file: Upload!): ImportResult!
+
+  # Collection mutations
+  createCollection(input: CollectionInput!): Collection!
+  updateCollection(id: ID!, input: CollectionInput!): Collection!
+  deleteCollection(id: ID!): Boolean!
+  
+  addCardToCollection(collectionId: ID!, input: CollectionCardInput!): CollectionCard!
+  updateCollectionCard(id: ID!, input: CollectionCardInput!): CollectionCard!
+  removeCardFromCollection(id: ID!): Boolean!
+}
+
+type ImportResult {
+  totalCards: Int!
+  importedCards: Int!
+  updatedCards: Int!
+  errors: [String!]!
+}
+
+input ImportSource {
+  source: String!  # e.g. "tcgcollector"
+  format: String!  # e.g. "csv"
+}
+
+scalar Upload 

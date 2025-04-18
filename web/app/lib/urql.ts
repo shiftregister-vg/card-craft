@@ -1,34 +1,45 @@
-import { createClient, fetchExchange } from '@urql/core';
-import { cacheExchange, Data } from '@urql/exchange-graphcache';
+import { Client, cacheExchange, createClient, fetchExchange } from '@urql/core';
+import { devtoolsExchange } from '@urql/devtools';
 
-export function createUrqlClient(ssrExchange: any) {
+const GRAPHQL_ENDPOINT = 'http://localhost:8080/query';
+
+// Create a client-side client instance
+export const client = typeof document !== 'undefined'
+  ? createClient({
+      url: GRAPHQL_ENDPOINT,
+      exchanges: [devtoolsExchange, cacheExchange, fetchExchange],
+      fetchOptions: () => {
+        const token = document.cookie
+          .split('; ')
+          .find(row => row.startsWith('token='))
+          ?.split('=')[1];
+        return {
+          headers: { Authorization: token ? `Bearer ${token}` : '' },
+        };
+      },
+    })
+  : null;
+
+// Create a server-side client instance
+export function createServerClient(request: Request): Client {
+  const token = request.headers.get('cookie')
+    ?.split('; ')
+    .find(row => row.startsWith('token='))
+    ?.split('=')[1];
+
   return createClient({
-    url: 'http://localhost:8080/query',
-    exchanges: [
-      cacheExchange({
-        keys: {
-          User: (data: Data) => data.id?.toString() || null,
-          Card: (data: Data) => data.id?.toString() || null,
-          Deck: (data: Data) => data.id?.toString() || null,
-          DeckCard: (data: Data) => data.id?.toString() || null,
-        },
-      }),
-      ssrExchange,
-      fetchExchange,
-    ],
-    fetchOptions: () => {
-      const token = document.cookie
-        .split('; ')
-        .find(row => row.startsWith('token='))
-        ?.split('=')[1];
-
-      return {
-        credentials: 'include',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-        },
-      };
+    url: GRAPHQL_ENDPOINT,
+    exchanges: [cacheExchange, fetchExchange],
+    fetchOptions: {
+      headers: { Authorization: token ? `Bearer ${token}` : '' },
     },
   });
+}
+
+// Export the createUrqlClient function for SSR
+export function createUrqlClient() {
+  return {
+    url: GRAPHQL_ENDPOINT,
+    exchanges: [cacheExchange, fetchExchange],
+  };
 } 

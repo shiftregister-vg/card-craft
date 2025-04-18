@@ -20,7 +20,6 @@ resolver:
   filename_template: "{name}.resolvers.go"
 
 # gqlgen will search for any type names in the schema in these go packages
-# if they match it will use them, otherwise it will generate them.
 autobind:
   - "github.com/shiftregister-vg/card-craft/internal/models"
   - "github.com/shiftregister-vg/card-craft/internal/types"
@@ -80,6 +79,14 @@ models:
     model: github.com/shiftregister-vg/card-craft/internal/types.CardSearchResult
   AuthPayload:
     model: github.com/shiftregister-vg/card-craft/internal/models.AuthPayload
+  CollectionInput:
+    model: github.com/shiftregister-vg/card-craft/internal/graph/model.CollectionInput
+  CollectionCardInput:
+    model: github.com/shiftregister-vg/card-craft/internal/graph/model.CollectionCardInput
+  ImportSource:
+    model: github.com/shiftregister-vg/card-craft/internal/graph/model.ImportSource
+  ImportResult:
+    model: github.com/shiftregister-vg/card-craft/internal/graph/model.ImportResult
 
 # Optional: turn on to use ` + "`" + `gqlgen:"fieldName"` + "`" + ` tags in your models
 # struct_tag: json

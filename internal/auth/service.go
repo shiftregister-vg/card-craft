@@ -3,6 +3,7 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -42,8 +43,14 @@ func (s *Service) HashPassword(password string) (string, error) {
 
 // CheckPassword compares a password with its hash
 func (s *Service) CheckPassword(password, hash string) bool {
+	fmt.Printf("Starting password comparison\n")
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
-	return err == nil
+	if err != nil {
+		fmt.Printf("Password comparison failed with error: %v\n", err)
+		return false
+	}
+	fmt.Printf("Password comparison successful\n")
+	return true
 }
 
 // GenerateToken generates a JWT token for a user
@@ -83,13 +90,17 @@ func (s *Service) ValidateToken(tokenString string) (string, error) {
 // Authenticate authenticates a user with email and password
 func (s *Service) Authenticate(user *models.User, password string) error {
 	if user == nil {
+		fmt.Printf("Authentication failed: user is nil\n")
 		return ErrUserNotFound
 	}
 
+	fmt.Printf("Comparing password for user %s\n", user.Username)
 	if !s.CheckPassword(password, user.PasswordHash) {
+		fmt.Printf("Password comparison failed for user %s\n", user.Username)
 		return ErrInvalidCredentials
 	}
 
+	fmt.Printf("Password comparison successful for user %s\n", user.Username)
 	return nil
 }
 
@@ -149,30 +160,49 @@ func (s *Service) Login(identifier string, password string) (*models.AuthPayload
 	var user *models.User
 	var err error
 
+	fmt.Printf("Attempting login for identifier: %s\n", identifier)
+
 	// Try to find user by email first
 	user, err = s.UserStore.FindByEmail(identifier)
 	if err != nil {
+		fmt.Printf("Error finding user by email %s: %v\n", identifier, err)
 		return nil, err
 	}
 
 	// If not found by email, try username
 	if user == nil {
+		fmt.Printf("User not found by email %s, trying username\n", identifier)
 		user, err = s.UserStore.FindByUsername(identifier)
 		if err != nil {
+			fmt.Printf("Error finding user by username %s: %v\n", identifier, err)
 			return nil, err
 		}
 	}
 
+	// If user is still nil, return invalid credentials
+	if user == nil {
+		fmt.Printf("User not found by email or username: %s\n", identifier)
+		return nil, ErrInvalidCredentials
+	}
+
+	fmt.Printf("Found user: %+v\n", user)
+
 	// Authenticate user
 	if err := s.Authenticate(user, password); err != nil {
+		fmt.Printf("Authentication failed for user %s: %v\n", user.Username, err)
 		return nil, err
 	}
+
+	fmt.Printf("Authentication successful for user %s\n", user.Username)
 
 	// Generate token
 	token, err := s.GenerateToken(user)
 	if err != nil {
+		fmt.Printf("Error generating token for user %s: %v\n", user.Username, err)
 		return nil, err
 	}
+
+	fmt.Printf("Token generated successfully for user %s\n", user.Username)
 
 	return &models.AuthPayload{
 		Token: token,

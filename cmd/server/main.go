@@ -3,7 +3,6 @@ package main
 import (
 	"log"
 	"net/http"
-	"path/filepath"
 
 	"github.com/shiftregister-vg/card-craft/internal/auth"
 	"github.com/shiftregister-vg/card-craft/internal/cards"
@@ -36,16 +35,11 @@ func main() {
 	}
 	defer db.Close()
 
-	// Run migrations
-	migrationsDir := filepath.Join("migrations")
-	if err := db.Migrate(migrationsDir); err != nil {
-		log.Fatalf("Error running migrations: %v", err)
-	}
-
 	// Initialize stores
 	cardStore := models.NewCardStore(db.DB)
 	deckStore := models.NewDeckStore(db.DB)
 	userStore := models.NewUserStore(db.DB)
+	collectionStore := models.NewCollectionStore(db.DB)
 
 	// Initialize middleware
 	authMiddleware := middleware.NewAuthMiddleware(cfg.JWTSecret, userStore)
@@ -60,7 +54,7 @@ func main() {
 
 	// Create GraphQL server
 	schema := generated.NewExecutableSchema(generated.Config{
-		Resolvers: graph.NewResolver(authService, cardStore, deckStore, searchService),
+		Resolvers: graph.NewResolver(authService, cardStore, deckStore, collectionStore, searchService),
 	})
 
 	// Create GraphQL handler with recommended configuration
