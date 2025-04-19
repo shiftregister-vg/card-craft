@@ -2,6 +2,8 @@ package cards
 
 import (
 	"database/sql"
+	"fmt"
+	"strings"
 
 	"github.com/google/uuid"
 	"github.com/shiftregister-vg/card-craft/internal/models"
@@ -158,21 +160,34 @@ func (s *CardStore) FindByID(id uuid.UUID) (*types.Card, error) {
 	return card, nil
 }
 
-func (s *CardStore) FindByGame(game string) ([]*types.Card, error) {
+func (s *CardStore) FindByGame(game string, first int, after string) ([]*types.Card, string, error) {
 	query := `
 		SELECT id, name, game, set_code, set_name, number, rarity, image_url, created_at, updated_at
 		FROM cards
 		WHERE LOWER(game) = LOWER($1)
+		AND ($2 = '' OR (set_code, number) > ($2, $3))
 		ORDER BY set_code, number
+		LIMIT $4
 	`
 
-	rows, err := s.db.Query(query, game)
+	// Parse the after cursor to get set_code and number
+	var setCode, number string
+	if after != "" {
+		parts := strings.Split(after, ":")
+		if len(parts) != 2 {
+			return nil, "", fmt.Errorf("invalid cursor format")
+		}
+		setCode, number = parts[0], parts[1]
+	}
+
+	rows, err := s.db.Query(query, game, setCode, number, first)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 	defer rows.Close()
 
 	var cards []*types.Card
+	var lastSetCode, lastNumber string
 	for rows.Next() {
 		card := &types.Card{}
 		err := rows.Scan(
@@ -188,11 +203,38 @@ func (s *CardStore) FindByGame(game string) ([]*types.Card, error) {
 			&card.UpdatedAt,
 		)
 		if err != nil {
-			return nil, err
+			return nil, "", err
 		}
 		cards = append(cards, card)
+		lastSetCode = card.SetCode
+		lastNumber = card.Number
 	}
-	return cards, nil
+
+	// Check if there are more results
+	var hasMore bool
+	if len(cards) > 0 {
+		checkQuery := `
+			SELECT EXISTS (
+				SELECT 1
+				FROM cards
+				WHERE LOWER(game) = LOWER($1)
+				AND (set_code, number) > ($2, $3)
+				LIMIT 1
+			)
+		`
+		err = s.db.QueryRow(checkQuery, game, lastSetCode, lastNumber).Scan(&hasMore)
+		if err != nil {
+			return nil, "", err
+		}
+	}
+
+	// Generate the next cursor
+	var nextCursor string
+	if hasMore && len(cards) > 0 {
+		nextCursor = fmt.Sprintf("%s:%s", lastSetCode, lastNumber)
+	}
+
+	return cards, nextCursor, nil
 }
 
 func (s *CardStore) FindBySet(game, setCode string) ([]*types.Card, error) {
@@ -240,18 +282,16 @@ func (s *CardStore) Delete(id uuid.UUID) error {
 
 // ToModel converts a types.Card to a models.Card
 func (s *CardStore) ToModel(card *types.Card) *models.Card {
-	if card == nil {
-		return nil
-	}
-	id, _ := uuid.Parse(card.ID.String())
 	return &models.Card{
-		ID:       id,
-		Name:     card.Name,
-		Game:     card.Game,
-		SetCode:  card.SetCode,
-		SetName:  card.SetName,
-		Number:   card.Number,
-		Rarity:   card.Rarity,
-		ImageURL: card.ImageURL,
+		ID:        card.ID,
+		Name:      card.Name,
+		Game:      card.Game,
+		SetCode:   card.SetCode,
+		SetName:   card.SetName,
+		Number:    card.Number,
+		Rarity:    card.Rarity,
+		ImageUrl:  card.ImageURL,
+		CreatedAt: card.CreatedAt,
+		UpdatedAt: card.UpdatedAt,
 	}
 }

@@ -13,7 +13,6 @@ import (
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/introspection"
-	"github.com/shiftregister-vg/card-craft/internal/graph/model"
 	"github.com/shiftregister-vg/card-craft/internal/models"
 	"github.com/shiftregister-vg/card-craft/internal/types"
 	gqlparser "github.com/vektah/gqlparser/v2"
@@ -64,13 +63,23 @@ type ComplexityRoot struct {
 		CreatedAt func(childComplexity int) int
 		Game      func(childComplexity int) int
 		ID        func(childComplexity int) int
-		ImageURL  func(childComplexity int) int
+		ImageUrl  func(childComplexity int) int
 		Name      func(childComplexity int) int
 		Number    func(childComplexity int) int
 		Rarity    func(childComplexity int) int
 		SetCode   func(childComplexity int) int
 		SetName   func(childComplexity int) int
 		UpdatedAt func(childComplexity int) int
+	}
+
+	CardConnection struct {
+		Edges    func(childComplexity int) int
+		PageInfo func(childComplexity int) int
+	}
+
+	CardEdge struct {
+		Cursor func(childComplexity int) int
+		Node   func(childComplexity int) int
 	}
 
 	CardFilters struct {
@@ -138,32 +147,37 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddCardToCollection      func(childComplexity int, collectionID string, input model.CollectionCardInput) int
+		AddCardToCollection      func(childComplexity int, collectionID string, input models.CollectionCardInput) int
 		AddCardToDeck            func(childComplexity int, deckID string, input types.DeckCardInput) int
-		CreateCard               func(childComplexity int, input types.CardInput) int
-		CreateCollection         func(childComplexity int, input model.CollectionInput) int
+		CreateCard               func(childComplexity int, input models.CardInput) int
+		CreateCollection         func(childComplexity int, input models.CollectionInput) int
 		CreateDeck               func(childComplexity int, input types.DeckInput) int
 		DeleteCard               func(childComplexity int, id string) int
 		DeleteCollection         func(childComplexity int, id string) int
 		DeleteDeck               func(childComplexity int, id string) int
 		ImportCards              func(childComplexity int, game string) int
-		ImportCollection         func(childComplexity int, input model.ImportSource, file graphql.Upload) int
+		ImportCollection         func(childComplexity int, input models.ImportSource, file graphql.Upload) int
 		Login                    func(childComplexity int, identifier string, password string) int
 		RefreshToken             func(childComplexity int) int
 		Register                 func(childComplexity int, username string, email string, password string) int
 		RemoveCardFromCollection func(childComplexity int, id string) int
 		RemoveCardFromDeck       func(childComplexity int, id string) int
-		UpdateCard               func(childComplexity int, id string, input types.CardInput) int
-		UpdateCollection         func(childComplexity int, id string, input model.CollectionInput) int
-		UpdateCollectionCard     func(childComplexity int, id string, input model.CollectionCardInput) int
+		UpdateCard               func(childComplexity int, id string, input models.CardInput) int
+		UpdateCollection         func(childComplexity int, id string, input models.CollectionInput) int
+		UpdateCollectionCard     func(childComplexity int, id string, input models.CollectionCardInput) int
 		UpdateDeck               func(childComplexity int, id string, input types.DeckInput) int
 		UpdateDeckCard           func(childComplexity int, id string, quantity int) int
+	}
+
+	PageInfo struct {
+		EndCursor   func(childComplexity int) int
+		HasNextPage func(childComplexity int) int
 	}
 
 	Query struct {
 		Card            func(childComplexity int, id string) int
 		CardFilters     func(childComplexity int, game string) int
-		CardsByGame     func(childComplexity int, game string) int
+		CardsByGame     func(childComplexity int, game string, first *int, after *string) int
 		CardsBySet      func(childComplexity int, game string, setCode string) int
 		Collection      func(childComplexity int, id string) int
 		CollectionCards func(childComplexity int, collectionID string) int
@@ -198,7 +212,6 @@ type CollectionResolver interface {
 	ID(ctx context.Context, obj *models.Collection) (string, error)
 	UserID(ctx context.Context, obj *models.Collection) (string, error)
 
-	Cards(ctx context.Context, obj *models.Collection) ([]*models.CollectionCard, error)
 	CreatedAt(ctx context.Context, obj *models.Collection) (string, error)
 	UpdatedAt(ctx context.Context, obj *models.Collection) (string, error)
 }
@@ -231,8 +244,8 @@ type MutationResolver interface {
 	Register(ctx context.Context, username string, email string, password string) (*models.AuthPayload, error)
 	Login(ctx context.Context, identifier string, password string) (*models.AuthPayload, error)
 	RefreshToken(ctx context.Context) (*models.AuthPayload, error)
-	CreateCard(ctx context.Context, input types.CardInput) (*models.Card, error)
-	UpdateCard(ctx context.Context, id string, input types.CardInput) (*models.Card, error)
+	CreateCard(ctx context.Context, input models.CardInput) (*models.Card, error)
+	UpdateCard(ctx context.Context, id string, input models.CardInput) (*models.Card, error)
 	DeleteCard(ctx context.Context, id string) (bool, error)
 	CreateDeck(ctx context.Context, input types.DeckInput) (*models.Deck, error)
 	UpdateDeck(ctx context.Context, id string, input types.DeckInput) (*models.Deck, error)
@@ -240,18 +253,18 @@ type MutationResolver interface {
 	AddCardToDeck(ctx context.Context, deckID string, input types.DeckCardInput) (*models.DeckCard, error)
 	UpdateDeckCard(ctx context.Context, id string, quantity int) (*models.DeckCard, error)
 	RemoveCardFromDeck(ctx context.Context, id string) (bool, error)
-	ImportCollection(ctx context.Context, input model.ImportSource, file graphql.Upload) (*model.ImportResult, error)
-	CreateCollection(ctx context.Context, input model.CollectionInput) (*models.Collection, error)
-	UpdateCollection(ctx context.Context, id string, input model.CollectionInput) (*models.Collection, error)
+	ImportCollection(ctx context.Context, input models.ImportSource, file graphql.Upload) (*models.ImportResult, error)
+	CreateCollection(ctx context.Context, input models.CollectionInput) (*models.Collection, error)
+	UpdateCollection(ctx context.Context, id string, input models.CollectionInput) (*models.Collection, error)
 	DeleteCollection(ctx context.Context, id string) (bool, error)
-	AddCardToCollection(ctx context.Context, collectionID string, input model.CollectionCardInput) (*models.CollectionCard, error)
-	UpdateCollectionCard(ctx context.Context, id string, input model.CollectionCardInput) (*models.CollectionCard, error)
+	AddCardToCollection(ctx context.Context, collectionID string, input models.CollectionCardInput) (*models.CollectionCard, error)
+	UpdateCollectionCard(ctx context.Context, id string, input models.CollectionCardInput) (*models.CollectionCard, error)
 	RemoveCardFromCollection(ctx context.Context, id string) (bool, error)
 	ImportCards(ctx context.Context, game string) (bool, error)
 }
 type QueryResolver interface {
 	Card(ctx context.Context, id string) (*models.Card, error)
-	CardsByGame(ctx context.Context, game string) ([]*models.Card, error)
+	CardsByGame(ctx context.Context, game string, first *int, after *string) (*models.CardConnection, error)
 	CardsBySet(ctx context.Context, game string, setCode string) ([]*models.Card, error)
 	SearchCards(ctx context.Context, game *string, setCode *string, rarity *string, name *string, page *int, pageSize *int, sortBy *string, sortOrder *string) (*types.CardSearchResult, error)
 	CardFilters(ctx context.Context, game string) (*types.CardFilters, error)
@@ -325,11 +338,11 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		return e.complexity.Card.ID(childComplexity), true
 
 	case "Card.imageUrl":
-		if e.complexity.Card.ImageURL == nil {
+		if e.complexity.Card.ImageUrl == nil {
 			break
 		}
 
-		return e.complexity.Card.ImageURL(childComplexity), true
+		return e.complexity.Card.ImageUrl(childComplexity), true
 
 	case "Card.name":
 		if e.complexity.Card.Name == nil {
@@ -372,6 +385,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Card.UpdatedAt(childComplexity), true
+
+	case "CardConnection.edges":
+		if e.complexity.CardConnection.Edges == nil {
+			break
+		}
+
+		return e.complexity.CardConnection.Edges(childComplexity), true
+
+	case "CardConnection.pageInfo":
+		if e.complexity.CardConnection.PageInfo == nil {
+			break
+		}
+
+		return e.complexity.CardConnection.PageInfo(childComplexity), true
+
+	case "CardEdge.cursor":
+		if e.complexity.CardEdge.Cursor == nil {
+			break
+		}
+
+		return e.complexity.CardEdge.Cursor(childComplexity), true
+
+	case "CardEdge.node":
+		if e.complexity.CardEdge.Node == nil {
+			break
+		}
+
+		return e.complexity.CardEdge.Node(childComplexity), true
 
 	case "CardFilters.rarities":
 		if e.complexity.CardFilters.Rarities == nil {
@@ -684,7 +725,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AddCardToCollection(childComplexity, args["collectionId"].(string), args["input"].(model.CollectionCardInput)), true
+		return e.complexity.Mutation.AddCardToCollection(childComplexity, args["collectionId"].(string), args["input"].(models.CollectionCardInput)), true
 
 	case "Mutation.addCardToDeck":
 		if e.complexity.Mutation.AddCardToDeck == nil {
@@ -708,7 +749,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateCard(childComplexity, args["input"].(types.CardInput)), true
+		return e.complexity.Mutation.CreateCard(childComplexity, args["input"].(models.CardInput)), true
 
 	case "Mutation.createCollection":
 		if e.complexity.Mutation.CreateCollection == nil {
@@ -720,7 +761,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateCollection(childComplexity, args["input"].(model.CollectionInput)), true
+		return e.complexity.Mutation.CreateCollection(childComplexity, args["input"].(models.CollectionInput)), true
 
 	case "Mutation.createDeck":
 		if e.complexity.Mutation.CreateDeck == nil {
@@ -792,7 +833,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.ImportCollection(childComplexity, args["input"].(model.ImportSource), args["file"].(graphql.Upload)), true
+		return e.complexity.Mutation.ImportCollection(childComplexity, args["input"].(models.ImportSource), args["file"].(graphql.Upload)), true
 
 	case "Mutation.login":
 		if e.complexity.Mutation.Login == nil {
@@ -859,7 +900,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateCard(childComplexity, args["id"].(string), args["input"].(types.CardInput)), true
+		return e.complexity.Mutation.UpdateCard(childComplexity, args["id"].(string), args["input"].(models.CardInput)), true
 
 	case "Mutation.updateCollection":
 		if e.complexity.Mutation.UpdateCollection == nil {
@@ -871,7 +912,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateCollection(childComplexity, args["id"].(string), args["input"].(model.CollectionInput)), true
+		return e.complexity.Mutation.UpdateCollection(childComplexity, args["id"].(string), args["input"].(models.CollectionInput)), true
 
 	case "Mutation.updateCollectionCard":
 		if e.complexity.Mutation.UpdateCollectionCard == nil {
@@ -883,7 +924,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateCollectionCard(childComplexity, args["id"].(string), args["input"].(model.CollectionCardInput)), true
+		return e.complexity.Mutation.UpdateCollectionCard(childComplexity, args["id"].(string), args["input"].(models.CollectionCardInput)), true
 
 	case "Mutation.updateDeck":
 		if e.complexity.Mutation.UpdateDeck == nil {
@@ -908,6 +949,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateDeckCard(childComplexity, args["id"].(string), args["quantity"].(int)), true
+
+	case "PageInfo.endCursor":
+		if e.complexity.PageInfo.EndCursor == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.EndCursor(childComplexity), true
+
+	case "PageInfo.hasNextPage":
+		if e.complexity.PageInfo.HasNextPage == nil {
+			break
+		}
+
+		return e.complexity.PageInfo.HasNextPage(childComplexity), true
 
 	case "Query.card":
 		if e.complexity.Query.Card == nil {
@@ -943,7 +998,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.CardsByGame(childComplexity, args["game"].(string)), true
+		return e.complexity.Query.CardsByGame(childComplexity, args["game"].(string), args["first"].(*int), args["after"].(*string)), true
 
 	case "Query.cardsBySet":
 		if e.complexity.Query.CardsBySet == nil {
@@ -1302,10 +1357,25 @@ input CollectionCardInput {
   notes: String
 }
 
+type CardConnection {
+  edges: [CardEdge!]!
+  pageInfo: PageInfo!
+}
+
+type CardEdge {
+  node: Card!
+  cursor: String!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
 type Query {
   # Card queries
   card(id: ID!): Card
-  cardsByGame(game: String!): [Card!]!
+  cardsByGame(game: String!, first: Int, after: String): CardConnection!
   cardsBySet(game: String!, setCode: String!): [Card!]!
   searchCards(
     game: String
@@ -1419,13 +1489,13 @@ func (ec *executionContext) field_Mutation_addCardToCollection_argsCollectionID(
 func (ec *executionContext) field_Mutation_addCardToCollection_argsInput(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.CollectionCardInput, error) {
+) (models.CollectionCardInput, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 	if tmp, ok := rawArgs["input"]; ok {
-		return ec.unmarshalNCollectionCardInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋgraphᚋmodelᚐCollectionCardInput(ctx, tmp)
+		return ec.unmarshalNCollectionCardInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCollectionCardInput(ctx, tmp)
 	}
 
-	var zeroVal model.CollectionCardInput
+	var zeroVal models.CollectionCardInput
 	return zeroVal, nil
 }
 
@@ -1483,13 +1553,13 @@ func (ec *executionContext) field_Mutation_createCard_args(ctx context.Context, 
 func (ec *executionContext) field_Mutation_createCard_argsInput(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (types.CardInput, error) {
+) (models.CardInput, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 	if tmp, ok := rawArgs["input"]; ok {
-		return ec.unmarshalNCardInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋtypesᚐCardInput(ctx, tmp)
+		return ec.unmarshalNCardInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCardInput(ctx, tmp)
 	}
 
-	var zeroVal types.CardInput
+	var zeroVal models.CardInput
 	return zeroVal, nil
 }
 
@@ -1506,13 +1576,13 @@ func (ec *executionContext) field_Mutation_createCollection_args(ctx context.Con
 func (ec *executionContext) field_Mutation_createCollection_argsInput(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.CollectionInput, error) {
+) (models.CollectionInput, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 	if tmp, ok := rawArgs["input"]; ok {
-		return ec.unmarshalNCollectionInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋgraphᚋmodelᚐCollectionInput(ctx, tmp)
+		return ec.unmarshalNCollectionInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCollectionInput(ctx, tmp)
 	}
 
-	var zeroVal model.CollectionInput
+	var zeroVal models.CollectionInput
 	return zeroVal, nil
 }
 
@@ -1649,13 +1719,13 @@ func (ec *executionContext) field_Mutation_importCollection_args(ctx context.Con
 func (ec *executionContext) field_Mutation_importCollection_argsInput(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.ImportSource, error) {
+) (models.ImportSource, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 	if tmp, ok := rawArgs["input"]; ok {
-		return ec.unmarshalNImportSource2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋgraphᚋmodelᚐImportSource(ctx, tmp)
+		return ec.unmarshalNImportSource2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐImportSource(ctx, tmp)
 	}
 
-	var zeroVal model.ImportSource
+	var zeroVal models.ImportSource
 	return zeroVal, nil
 }
 
@@ -1849,13 +1919,13 @@ func (ec *executionContext) field_Mutation_updateCard_argsID(
 func (ec *executionContext) field_Mutation_updateCard_argsInput(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (types.CardInput, error) {
+) (models.CardInput, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 	if tmp, ok := rawArgs["input"]; ok {
-		return ec.unmarshalNCardInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋtypesᚐCardInput(ctx, tmp)
+		return ec.unmarshalNCardInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCardInput(ctx, tmp)
 	}
 
-	var zeroVal types.CardInput
+	var zeroVal models.CardInput
 	return zeroVal, nil
 }
 
@@ -1890,13 +1960,13 @@ func (ec *executionContext) field_Mutation_updateCollectionCard_argsID(
 func (ec *executionContext) field_Mutation_updateCollectionCard_argsInput(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.CollectionCardInput, error) {
+) (models.CollectionCardInput, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 	if tmp, ok := rawArgs["input"]; ok {
-		return ec.unmarshalNCollectionCardInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋgraphᚋmodelᚐCollectionCardInput(ctx, tmp)
+		return ec.unmarshalNCollectionCardInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCollectionCardInput(ctx, tmp)
 	}
 
-	var zeroVal model.CollectionCardInput
+	var zeroVal models.CollectionCardInput
 	return zeroVal, nil
 }
 
@@ -1931,13 +2001,13 @@ func (ec *executionContext) field_Mutation_updateCollection_argsID(
 func (ec *executionContext) field_Mutation_updateCollection_argsInput(
 	ctx context.Context,
 	rawArgs map[string]any,
-) (model.CollectionInput, error) {
+) (models.CollectionInput, error) {
 	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
 	if tmp, ok := rawArgs["input"]; ok {
-		return ec.unmarshalNCollectionInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋgraphᚋmodelᚐCollectionInput(ctx, tmp)
+		return ec.unmarshalNCollectionInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCollectionInput(ctx, tmp)
 	}
 
-	var zeroVal model.CollectionInput
+	var zeroVal models.CollectionInput
 	return zeroVal, nil
 }
 
@@ -2100,6 +2170,16 @@ func (ec *executionContext) field_Query_cardsByGame_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["game"] = arg0
+	arg1, err := ec.field_Query_cardsByGame_argsFirst(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["first"] = arg1
+	arg2, err := ec.field_Query_cardsByGame_argsAfter(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["after"] = arg2
 	return args, nil
 }
 func (ec *executionContext) field_Query_cardsByGame_argsGame(
@@ -2112,6 +2192,32 @@ func (ec *executionContext) field_Query_cardsByGame_argsGame(
 	}
 
 	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_cardsByGame_argsFirst(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*int, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("first"))
+	if tmp, ok := rawArgs["first"]; ok {
+		return ec.unmarshalOInt2ᚖint(ctx, tmp)
+	}
+
+	var zeroVal *int
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Query_cardsByGame_argsAfter(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (*string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("after"))
+	if tmp, ok := rawArgs["after"]; ok {
+		return ec.unmarshalOString2ᚖstring(ctx, tmp)
+	}
+
+	var zeroVal *string
 	return zeroVal, nil
 }
 
@@ -2919,7 +3025,7 @@ func (ec *executionContext) _Card_imageUrl(ctx context.Context, field graphql.Co
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.ImageURL, nil
+		return obj.ImageUrl, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3030,6 +3136,216 @@ func (ec *executionContext) fieldContext_Card_updatedAt(_ context.Context, field
 		Field:      field,
 		IsMethod:   true,
 		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CardConnection_edges(ctx context.Context, field graphql.CollectedField, obj *models.CardConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CardConnection_edges(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Edges, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.([]*models.CardEdge)
+	fc.Result = res
+	return ec.marshalNCardEdge2ᚕᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCardEdgeᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CardConnection_edges(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CardConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "node":
+				return ec.fieldContext_CardEdge_node(ctx, field)
+			case "cursor":
+				return ec.fieldContext_CardEdge_cursor(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type CardEdge", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CardConnection_pageInfo(ctx context.Context, field graphql.CollectedField, obj *models.CardConnection) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CardConnection_pageInfo(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.PageInfo, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.PageInfo)
+	fc.Result = res
+	return ec.marshalNPageInfo2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐPageInfo(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CardConnection_pageInfo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CardConnection",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "hasNextPage":
+				return ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+			case "endCursor":
+				return ec.fieldContext_PageInfo_endCursor(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type PageInfo", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CardEdge_node(ctx context.Context, field graphql.CollectedField, obj *models.CardEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CardEdge_node(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Node, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.Card)
+	fc.Result = res
+	return ec.marshalNCard2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCard(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CardEdge_node(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CardEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "id":
+				return ec.fieldContext_Card_id(ctx, field)
+			case "name":
+				return ec.fieldContext_Card_name(ctx, field)
+			case "game":
+				return ec.fieldContext_Card_game(ctx, field)
+			case "setCode":
+				return ec.fieldContext_Card_setCode(ctx, field)
+			case "setName":
+				return ec.fieldContext_Card_setName(ctx, field)
+			case "number":
+				return ec.fieldContext_Card_number(ctx, field)
+			case "rarity":
+				return ec.fieldContext_Card_rarity(ctx, field)
+			case "imageUrl":
+				return ec.fieldContext_Card_imageUrl(ctx, field)
+			case "createdAt":
+				return ec.fieldContext_Card_createdAt(ctx, field)
+			case "updatedAt":
+				return ec.fieldContext_Card_updatedAt(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type Card", field.Name)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _CardEdge_cursor(ctx context.Context, field graphql.CollectedField, obj *models.CardEdge) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_CardEdge_cursor(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Cursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_CardEdge_cursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "CardEdge",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type String does not have child fields")
 		},
@@ -3554,7 +3870,7 @@ func (ec *executionContext) _Collection_cards(ctx context.Context, field graphql
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Collection().Cards(rctx, obj)
+		return obj.Cards, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3575,8 +3891,8 @@ func (ec *executionContext) fieldContext_Collection_cards(_ context.Context, fie
 	fc = &graphql.FieldContext{
 		Object:     "Collection",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
 			case "id":
@@ -4842,7 +5158,7 @@ func (ec *executionContext) fieldContext_DeckCard_card(_ context.Context, field 
 	return fc, nil
 }
 
-func (ec *executionContext) _ImportResult_totalCards(ctx context.Context, field graphql.CollectedField, obj *model.ImportResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _ImportResult_totalCards(ctx context.Context, field graphql.CollectedField, obj *models.ImportResult) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ImportResult_totalCards(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -4886,7 +5202,7 @@ func (ec *executionContext) fieldContext_ImportResult_totalCards(_ context.Conte
 	return fc, nil
 }
 
-func (ec *executionContext) _ImportResult_importedCards(ctx context.Context, field graphql.CollectedField, obj *model.ImportResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _ImportResult_importedCards(ctx context.Context, field graphql.CollectedField, obj *models.ImportResult) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ImportResult_importedCards(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -4930,7 +5246,7 @@ func (ec *executionContext) fieldContext_ImportResult_importedCards(_ context.Co
 	return fc, nil
 }
 
-func (ec *executionContext) _ImportResult_updatedCards(ctx context.Context, field graphql.CollectedField, obj *model.ImportResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _ImportResult_updatedCards(ctx context.Context, field graphql.CollectedField, obj *models.ImportResult) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ImportResult_updatedCards(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -4974,7 +5290,7 @@ func (ec *executionContext) fieldContext_ImportResult_updatedCards(_ context.Con
 	return fc, nil
 }
 
-func (ec *executionContext) _ImportResult_errors(ctx context.Context, field graphql.CollectedField, obj *model.ImportResult) (ret graphql.Marshaler) {
+func (ec *executionContext) _ImportResult_errors(ctx context.Context, field graphql.CollectedField, obj *models.ImportResult) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ImportResult_errors(ctx, field)
 	if err != nil {
 		return graphql.Null
@@ -5204,7 +5520,7 @@ func (ec *executionContext) _Mutation_createCard(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateCard(rctx, fc.Args["input"].(types.CardInput))
+		return ec.resolvers.Mutation().CreateCard(rctx, fc.Args["input"].(models.CardInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5281,7 +5597,7 @@ func (ec *executionContext) _Mutation_updateCard(ctx context.Context, field grap
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateCard(rctx, fc.Args["id"].(string), fc.Args["input"].(types.CardInput))
+		return ec.resolvers.Mutation().UpdateCard(rctx, fc.Args["id"].(string), fc.Args["input"].(models.CardInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5811,7 +6127,7 @@ func (ec *executionContext) _Mutation_importCollection(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().ImportCollection(rctx, fc.Args["input"].(model.ImportSource), fc.Args["file"].(graphql.Upload))
+		return ec.resolvers.Mutation().ImportCollection(rctx, fc.Args["input"].(models.ImportSource), fc.Args["file"].(graphql.Upload))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5823,9 +6139,9 @@ func (ec *executionContext) _Mutation_importCollection(ctx context.Context, fiel
 		}
 		return graphql.Null
 	}
-	res := resTmp.(*model.ImportResult)
+	res := resTmp.(*models.ImportResult)
 	fc.Result = res
-	return ec.marshalNImportResult2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋgraphᚋmodelᚐImportResult(ctx, field.Selections, res)
+	return ec.marshalNImportResult2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐImportResult(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Mutation_importCollection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -5876,7 +6192,7 @@ func (ec *executionContext) _Mutation_createCollection(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().CreateCollection(rctx, fc.Args["input"].(model.CollectionInput))
+		return ec.resolvers.Mutation().CreateCollection(rctx, fc.Args["input"].(models.CollectionInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5949,7 +6265,7 @@ func (ec *executionContext) _Mutation_updateCollection(ctx context.Context, fiel
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateCollection(rctx, fc.Args["id"].(string), fc.Args["input"].(model.CollectionInput))
+		return ec.resolvers.Mutation().UpdateCollection(rctx, fc.Args["id"].(string), fc.Args["input"].(models.CollectionInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6077,7 +6393,7 @@ func (ec *executionContext) _Mutation_addCardToCollection(ctx context.Context, f
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().AddCardToCollection(rctx, fc.Args["collectionId"].(string), fc.Args["input"].(model.CollectionCardInput))
+		return ec.resolvers.Mutation().AddCardToCollection(rctx, fc.Args["collectionId"].(string), fc.Args["input"].(models.CollectionCardInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6154,7 +6470,7 @@ func (ec *executionContext) _Mutation_updateCollectionCard(ctx context.Context, 
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Mutation().UpdateCollectionCard(rctx, fc.Args["id"].(string), fc.Args["input"].(model.CollectionCardInput))
+		return ec.resolvers.Mutation().UpdateCollectionCard(rctx, fc.Args["id"].(string), fc.Args["input"].(models.CollectionCardInput))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6327,6 +6643,91 @@ func (ec *executionContext) fieldContext_Mutation_importCards(ctx context.Contex
 	return fc, nil
 }
 
+func (ec *executionContext) _PageInfo_hasNextPage(ctx context.Context, field graphql.CollectedField, obj *models.PageInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PageInfo_hasNextPage(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.HasNextPage, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_hasNextPage(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _PageInfo_endCursor(ctx context.Context, field graphql.CollectedField, obj *models.PageInfo) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_PageInfo_endCursor(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EndCursor, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*string)
+	fc.Result = res
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_PageInfo_endCursor(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "PageInfo",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Query_card(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Query_card(ctx, field)
 	if err != nil {
@@ -6415,7 +6816,7 @@ func (ec *executionContext) _Query_cardsByGame(ctx context.Context, field graphq
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Query().CardsByGame(rctx, fc.Args["game"].(string))
+		return ec.resolvers.Query().CardsByGame(rctx, fc.Args["game"].(string), fc.Args["first"].(*int), fc.Args["after"].(*string))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -6427,9 +6828,9 @@ func (ec *executionContext) _Query_cardsByGame(ctx context.Context, field graphq
 		}
 		return graphql.Null
 	}
-	res := resTmp.([]*models.Card)
+	res := resTmp.(*models.CardConnection)
 	fc.Result = res
-	return ec.marshalNCard2ᚕᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCardᚄ(ctx, field.Selections, res)
+	return ec.marshalNCardConnection2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCardConnection(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_Query_cardsByGame(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -6440,28 +6841,12 @@ func (ec *executionContext) fieldContext_Query_cardsByGame(ctx context.Context, 
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			switch field.Name {
-			case "id":
-				return ec.fieldContext_Card_id(ctx, field)
-			case "name":
-				return ec.fieldContext_Card_name(ctx, field)
-			case "game":
-				return ec.fieldContext_Card_game(ctx, field)
-			case "setCode":
-				return ec.fieldContext_Card_setCode(ctx, field)
-			case "setName":
-				return ec.fieldContext_Card_setName(ctx, field)
-			case "number":
-				return ec.fieldContext_Card_number(ctx, field)
-			case "rarity":
-				return ec.fieldContext_Card_rarity(ctx, field)
-			case "imageUrl":
-				return ec.fieldContext_Card_imageUrl(ctx, field)
-			case "createdAt":
-				return ec.fieldContext_Card_createdAt(ctx, field)
-			case "updatedAt":
-				return ec.fieldContext_Card_updatedAt(ctx, field)
+			case "edges":
+				return ec.fieldContext_CardConnection_edges(ctx, field)
+			case "pageInfo":
+				return ec.fieldContext_CardConnection_pageInfo(ctx, field)
 			}
-			return nil, fmt.Errorf("no field named %q was found under type Card", field.Name)
+			return nil, fmt.Errorf("no field named %q was found under type CardConnection", field.Name)
 		},
 	}
 	defer func() {
@@ -9448,8 +9833,8 @@ func (ec *executionContext) fieldContext___Type_isOneOf(_ context.Context, field
 
 // region    **************************** input.gotpl *****************************
 
-func (ec *executionContext) unmarshalInputCardInput(ctx context.Context, obj any) (types.CardInput, error) {
-	var it types.CardInput
+func (ec *executionContext) unmarshalInputCardInput(ctx context.Context, obj any) (models.CardInput, error) {
+	var it models.CardInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -9510,15 +9895,15 @@ func (ec *executionContext) unmarshalInputCardInput(ctx context.Context, obj any
 			if err != nil {
 				return it, err
 			}
-			it.ImageURL = data
+			it.ImageUrl = data
 		}
 	}
 
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCollectionCardInput(ctx context.Context, obj any) (model.CollectionCardInput, error) {
-	var it model.CollectionCardInput
+func (ec *executionContext) unmarshalInputCollectionCardInput(ctx context.Context, obj any) (models.CollectionCardInput, error) {
+	var it models.CollectionCardInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -9572,8 +9957,8 @@ func (ec *executionContext) unmarshalInputCollectionCardInput(ctx context.Contex
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputCollectionInput(ctx context.Context, obj any) (model.CollectionInput, error) {
-	var it model.CollectionInput
+func (ec *executionContext) unmarshalInputCollectionInput(ctx context.Context, obj any) (models.CollectionInput, error) {
+	var it models.CollectionInput
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -9688,8 +10073,8 @@ func (ec *executionContext) unmarshalInputDeckInput(ctx context.Context, obj any
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputImportSource(ctx context.Context, obj any) (model.ImportSource, error) {
-	var it model.ImportSource
+func (ec *executionContext) unmarshalInputImportSource(ctx context.Context, obj any) (models.ImportSource, error) {
+	var it models.ImportSource
 	asMap := map[string]any{}
 	for k, v := range obj.(map[string]any) {
 		asMap[k] = v
@@ -9928,6 +10313,94 @@ func (ec *executionContext) _Card(ctx context.Context, sel ast.SelectionSet, obj
 			}
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var cardConnectionImplementors = []string{"CardConnection"}
+
+func (ec *executionContext) _CardConnection(ctx context.Context, sel ast.SelectionSet, obj *models.CardConnection) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cardConnectionImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CardConnection")
+		case "edges":
+			out.Values[i] = ec._CardConnection_edges(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "pageInfo":
+			out.Values[i] = ec._CardConnection_pageInfo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var cardEdgeImplementors = []string{"CardEdge"}
+
+func (ec *executionContext) _CardEdge(ctx context.Context, sel ast.SelectionSet, obj *models.CardEdge) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cardEdgeImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("CardEdge")
+		case "node":
+			out.Values[i] = ec._CardEdge_node(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cursor":
+			out.Values[i] = ec._CardEdge_cursor(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10207,41 +10680,10 @@ func (ec *executionContext) _Collection(ctx context.Context, sel ast.SelectionSe
 				atomic.AddUint32(&out.Invalids, 1)
 			}
 		case "cards":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Collection_cards(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._Collection_cards(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "createdAt":
 			field := field
 
@@ -11050,7 +11492,7 @@ func (ec *executionContext) _DeckCard(ctx context.Context, sel ast.SelectionSet,
 
 var importResultImplementors = []string{"ImportResult"}
 
-func (ec *executionContext) _ImportResult(ctx context.Context, sel ast.SelectionSet, obj *model.ImportResult) graphql.Marshaler {
+func (ec *executionContext) _ImportResult(ctx context.Context, sel ast.SelectionSet, obj *models.ImportResult) graphql.Marshaler {
 	fields := graphql.CollectFields(ec.OperationContext, sel, importResultImplementors)
 
 	out := graphql.NewFieldSet(fields)
@@ -11261,6 +11703,47 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
+var pageInfoImplementors = []string{"PageInfo"}
+
+func (ec *executionContext) _PageInfo(ctx context.Context, sel ast.SelectionSet, obj *models.PageInfo) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, pageInfoImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PageInfo")
+		case "hasNextPage":
+			out.Values[i] = ec._PageInfo_hasNextPage(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "endCursor":
+			out.Values[i] = ec._PageInfo_endCursor(ctx, field, obj)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -12160,6 +12643,74 @@ func (ec *executionContext) marshalNCard2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋ
 	return ec._Card(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNCardConnection2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCardConnection(ctx context.Context, sel ast.SelectionSet, v models.CardConnection) graphql.Marshaler {
+	return ec._CardConnection(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCardConnection2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCardConnection(ctx context.Context, sel ast.SelectionSet, v *models.CardConnection) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CardConnection(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNCardEdge2ᚕᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCardEdgeᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.CardEdge) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNCardEdge2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCardEdge(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNCardEdge2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCardEdge(ctx context.Context, sel ast.SelectionSet, v *models.CardEdge) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._CardEdge(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNCardFilters2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋtypesᚐCardFilters(ctx context.Context, sel ast.SelectionSet, v types.CardFilters) graphql.Marshaler {
 	return ec._CardFilters(ctx, sel, &v)
 }
@@ -12174,7 +12725,7 @@ func (ec *executionContext) marshalNCardFilters2ᚖgithubᚗcomᚋshiftregister�
 	return ec._CardFilters(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNCardInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋtypesᚐCardInput(ctx context.Context, v any) (types.CardInput, error) {
+func (ec *executionContext) unmarshalNCardInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCardInput(ctx context.Context, v any) (models.CardInput, error) {
 	res, err := ec.unmarshalInputCardInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -12309,12 +12860,12 @@ func (ec *executionContext) marshalNCollectionCard2ᚖgithubᚗcomᚋshiftregist
 	return ec._CollectionCard(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNCollectionCardInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋgraphᚋmodelᚐCollectionCardInput(ctx context.Context, v any) (model.CollectionCardInput, error) {
+func (ec *executionContext) unmarshalNCollectionCardInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCollectionCardInput(ctx context.Context, v any) (models.CollectionCardInput, error) {
 	res, err := ec.unmarshalInputCollectionCardInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
 
-func (ec *executionContext) unmarshalNCollectionInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋgraphᚋmodelᚐCollectionInput(ctx context.Context, v any) (model.CollectionInput, error) {
+func (ec *executionContext) unmarshalNCollectionInput2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCollectionInput(ctx context.Context, v any) (models.CollectionInput, error) {
 	res, err := ec.unmarshalInputCollectionInput(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -12460,11 +13011,11 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
-func (ec *executionContext) marshalNImportResult2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋgraphᚋmodelᚐImportResult(ctx context.Context, sel ast.SelectionSet, v model.ImportResult) graphql.Marshaler {
+func (ec *executionContext) marshalNImportResult2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐImportResult(ctx context.Context, sel ast.SelectionSet, v models.ImportResult) graphql.Marshaler {
 	return ec._ImportResult(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNImportResult2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋgraphᚋmodelᚐImportResult(ctx context.Context, sel ast.SelectionSet, v *model.ImportResult) graphql.Marshaler {
+func (ec *executionContext) marshalNImportResult2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐImportResult(ctx context.Context, sel ast.SelectionSet, v *models.ImportResult) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
 			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
@@ -12474,7 +13025,7 @@ func (ec *executionContext) marshalNImportResult2ᚖgithubᚗcomᚋshiftregister
 	return ec._ImportResult(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNImportSource2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋgraphᚋmodelᚐImportSource(ctx context.Context, v any) (model.ImportSource, error) {
+func (ec *executionContext) unmarshalNImportSource2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐImportSource(ctx context.Context, v any) (models.ImportSource, error) {
 	res, err := ec.unmarshalInputImportSource(ctx, v)
 	return res, graphql.ErrorOnPath(ctx, err)
 }
@@ -12492,6 +13043,16 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNPageInfo2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐPageInfo(ctx context.Context, sel ast.SelectionSet, v *models.PageInfo) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PageInfo(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalNString2string(ctx context.Context, v any) (string, error) {

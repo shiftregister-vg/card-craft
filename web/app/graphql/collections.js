@@ -52,18 +52,27 @@ export const MY_COLLECTIONS_QUERY = gql`
 `;
 
 export const CARDS_BY_GAME_QUERY = gql`
-  query CardsByGame($game: String!) {
-    cardsByGame(game: $game) {
-      id
-      name
-      game
-      setCode
-      setName
-      number
-      rarity
-      imageUrl
-      createdAt
-      updatedAt
+  query CardsByGame($game: String!, $first: Int, $after: String) {
+    cardsByGame(game: $game, first: $first, after: $after) {
+      edges {
+        node {
+          id
+          name
+          game
+          setCode
+          setName
+          number
+          rarity
+          imageUrl
+          createdAt
+          updatedAt
+        }
+        cursor
+      }
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
     }
   }
 `;

@@ -68,7 +68,7 @@ models:
       rarity:
         fieldName: Rarity
       imageUrl:
-        fieldName: ImageURL
+        fieldName: ImageUrl
       createdAt:
         fieldName: CreatedAt
       updatedAt:

@@ -116,10 +116,25 @@ input CollectionCardInput {
   notes: String
 }
 
+type CardConnection {
+  edges: [CardEdge!]!
+  pageInfo: PageInfo!
+}
+
+type CardEdge {
+  node: Card!
+  cursor: String!
+}
+
+type PageInfo {
+  hasNextPage: Boolean!
+  endCursor: String
+}
+
 type Query {
   # Card queries
   card(id: ID!): Card
-  cardsByGame(game: String!): [Card!]!
+  cardsByGame(game: String!, first: Int, after: String): CardConnection!
   cardsBySet(game: String!, setCode: String!): [Card!]!
   searchCards(
     game: String

@@ -14,7 +14,6 @@ import (
 	"github.com/shiftregister-vg/card-craft/internal/auth"
 	"github.com/shiftregister-vg/card-craft/internal/cards"
 	"github.com/shiftregister-vg/card-craft/internal/graph/generated"
-	"github.com/shiftregister-vg/card-craft/internal/graph/model"
 	"github.com/shiftregister-vg/card-craft/internal/models"
 	"github.com/shiftregister-vg/card-craft/internal/types"
 	"github.com/shiftregister-vg/card-craft/internal/utils"
@@ -59,11 +58,6 @@ func (r *collectionResolver) UserID(ctx context.Context, obj *models.Collection)
 	return obj.UserID.String(), nil
 }
 
-// Cards is the resolver for the cards field.
-func (r *collectionResolver) Cards(ctx context.Context, obj *models.Collection) ([]*models.CollectionCard, error) {
-	return r.collectionStore.GetCards(obj.ID)
-}
-
 // CreatedAt is the resolver for the createdAt field.
 func (r *collectionResolver) CreatedAt(ctx context.Context, obj *models.Collection) (string, error) {
 	return obj.CreatedAt.Format(time.RFC3339), nil
@@ -97,15 +91,6 @@ func (r *collectionCardResolver) CreatedAt(ctx context.Context, obj *models.Coll
 // UpdatedAt is the resolver for the updatedAt field.
 func (r *collectionCardResolver) UpdatedAt(ctx context.Context, obj *models.CollectionCard) (string, error) {
 	return obj.UpdatedAt.Format(time.RFC3339), nil
-}
-
-// Card is the resolver for the card field.
-func (r *collectionCardResolver) Card(ctx context.Context, obj *models.CollectionCard) (*models.Card, error) {
-	typesCard, err := r.cardStore.FindByID(obj.CardID)
-	if err != nil {
-		return nil, err
-	}
-	return r.cardStore.ToModel(typesCard), nil
 }
 
 // ID is the resolver for the id field.
@@ -191,12 +176,12 @@ func (r *mutationResolver) RefreshToken(ctx context.Context) (*models.AuthPayloa
 }
 
 // CreateCard is the resolver for the createCard field.
-func (r *mutationResolver) CreateCard(ctx context.Context, input types.CardInput) (*models.Card, error) {
+func (r *mutationResolver) CreateCard(ctx context.Context, input models.CardInput) (*models.Card, error) {
 	panic(fmt.Errorf("not implemented: CreateCard - createCard"))
 }
 
 // UpdateCard is the resolver for the updateCard field.
-func (r *mutationResolver) UpdateCard(ctx context.Context, id string, input types.CardInput) (*models.Card, error) {
+func (r *mutationResolver) UpdateCard(ctx context.Context, id string, input models.CardInput) (*models.Card, error) {
 	panic(fmt.Errorf("not implemented: UpdateCard - updateCard"))
 }
 
@@ -236,12 +221,12 @@ func (r *mutationResolver) RemoveCardFromDeck(ctx context.Context, id string) (b
 }
 
 // ImportCollection is the resolver for the importCollection field.
-func (r *mutationResolver) ImportCollection(ctx context.Context, input model.ImportSource, file graphql.Upload) (*model.ImportResult, error) {
+func (r *mutationResolver) ImportCollection(ctx context.Context, input models.ImportSource, file graphql.Upload) (*models.ImportResult, error) {
 	panic(fmt.Errorf("not implemented: ImportCollection - importCollection"))
 }
 
 // CreateCollection is the resolver for the createCollection field.
-func (r *mutationResolver) CreateCollection(ctx context.Context, input model.CollectionInput) (*models.Collection, error) {
+func (r *mutationResolver) CreateCollection(ctx context.Context, input models.CollectionInput) (*models.Collection, error) {
 	user := auth.GetUserFromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("not authenticated")
@@ -263,7 +248,7 @@ func (r *mutationResolver) CreateCollection(ctx context.Context, input model.Col
 }
 
 // UpdateCollection is the resolver for the updateCollection field.
-func (r *mutationResolver) UpdateCollection(ctx context.Context, id string, input model.CollectionInput) (*models.Collection, error) {
+func (r *mutationResolver) UpdateCollection(ctx context.Context, id string, input models.CollectionInput) (*models.Collection, error) {
 	user := auth.GetUserFromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("not authenticated")
@@ -318,7 +303,7 @@ func (r *mutationResolver) DeleteCollection(ctx context.Context, id string) (boo
 }
 
 // AddCardToCollection is the resolver for the addCardToCollection field.
-func (r *mutationResolver) AddCardToCollection(ctx context.Context, collectionID string, input model.CollectionCardInput) (*models.CollectionCard, error) {
+func (r *mutationResolver) AddCardToCollection(ctx context.Context, collectionID string, input models.CollectionCardInput) (*models.CollectionCard, error) {
 	user := auth.GetUserFromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("not authenticated")
@@ -365,7 +350,7 @@ func (r *mutationResolver) AddCardToCollection(ctx context.Context, collectionID
 }
 
 // UpdateCollectionCard is the resolver for the updateCollectionCard field.
-func (r *mutationResolver) UpdateCollectionCard(ctx context.Context, id string, input model.CollectionCardInput) (*models.CollectionCard, error) {
+func (r *mutationResolver) UpdateCollectionCard(ctx context.Context, id string, input models.CollectionCardInput) (*models.CollectionCard, error) {
 	user := auth.GetUserFromContext(ctx)
 	if user == nil {
 		return nil, fmt.Errorf("not authenticated")
@@ -474,17 +459,38 @@ func (r *queryResolver) Card(ctx context.Context, id string) (*models.Card, erro
 }
 
 // CardsByGame is the resolver for the cardsByGame field.
-func (r *queryResolver) CardsByGame(ctx context.Context, game string) ([]*models.Card, error) {
-	cards, err := r.cardStore.FindByGame(game)
+func (r *queryResolver) CardsByGame(ctx context.Context, game string, first *int, after *string) (*models.CardConnection, error) {
+	limit := 100 // Default to 100 cards per page
+	if first != nil {
+		limit = *first
+	}
+
+	afterCursor := ""
+	if after != nil {
+		afterCursor = *after
+	}
+
+	typeCards, nextCursor, err := r.cardStore.FindByGame(game, limit, afterCursor)
 	if err != nil {
 		return nil, err
 	}
 
-	result := make([]*models.Card, len(cards))
-	for i, card := range cards {
-		result[i] = r.cardStore.ToModel(card)
+	edges := make([]*models.CardEdge, len(typeCards))
+	for i, card := range typeCards {
+		modelCard := r.cardStore.ToModel(card)
+		edges[i] = &models.CardEdge{
+			Node:   modelCard,
+			Cursor: fmt.Sprintf("%s:%s", card.SetCode, card.Number),
+		}
 	}
-	return result, nil
+
+	return &models.CardConnection{
+		Edges: edges,
+		PageInfo: &models.PageInfo{
+			HasNextPage: nextCursor != "",
+			EndCursor:   &nextCursor,
+		},
+	}, nil
 }
 
 // CardsBySet is the resolver for the cardsBySet field.
@@ -616,11 +622,7 @@ type userResolver struct{ *Resolver }
 //    it when you're done.
 //  - You have helper methods in this file. Move them out to keep these resolver files clean.
 /*
-	func (r *collectionCardResolver) Card(ctx context.Context, obj *models.CollectionCard) (*models.Card, error) {
-	typesCard, err := r.cardStore.FindByID(obj.CardID)
-	if err != nil {
-		return nil, err
-	}
-	return r.cardStore.ToModel(typesCard), nil
+	func (r *cardResolver) ImageUrl(ctx context.Context, obj *models.Card) (string, error) {
+	return obj.ImageUrl, nil
 }
 */

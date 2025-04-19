@@ -1,6 +1,6 @@
 import { json, LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
 import { Form, useActionData, useLoaderData, useNavigation, useParams } from '@remix-run/react';
-import { useState } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createServerClient } from '../lib/urql.js';
 import { requireUser } from '../utils/auth.server.js';
 import { COLLECTION_QUERY, ADD_CARD_TO_COLLECTION_MUTATION, REMOVE_CARD_FROM_COLLECTION_MUTATION, CARDS_BY_GAME_QUERY } from '../graphql/collections.js';
@@ -20,7 +20,9 @@ interface CollectionCard {
 
 interface LoaderData {
   collection: Collection;
-  allCards: Card[];
+  initialCards: Card[];
+  hasNextPage: boolean;
+  endCursor: string | null;
 }
 
 interface ActionData {
@@ -54,9 +56,10 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw new Response('Collection not found', { status: 404 });
   }
 
-  // Fetch all cards for the collection's game
+  // Fetch initial set of cards for the collection's game
   const { data: cardsData, error: cardsError } = await serverClient.query(CARDS_BY_GAME_QUERY, {
     game: data.collection.game.toLowerCase(),
+    first: 50,
   }).toPromise();
 
   if (cardsError) {
@@ -64,13 +67,15 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw new Response('Error fetching cards', { status: 500 });
   }
 
-  console.log('Cards data:', JSON.stringify(cardsData, null, 2));
-  console.log('Number of cards:', cardsData?.cardsByGame?.length || 0);
-  console.log('Number of collection cards:', data.collection.cards.length);
+  const initialCards = cardsData?.cardsByGame?.edges?.map((edge: any) => edge.node) || [];
+  const hasNextPage = cardsData?.cardsByGame?.pageInfo?.hasNextPage || false;
+  const endCursor = cardsData?.cardsByGame?.pageInfo?.endCursor || null;
 
   return json<LoaderData>({ 
     collection: data.collection,
-    allCards: cardsData?.cardsByGame || [],
+    initialCards,
+    hasNextPage,
+    endCursor,
   });
 }
 
@@ -123,22 +128,59 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function CollectionDetail() {
-  const { collection, allCards } = useLoaderData<LoaderData>();
+  const { collection, initialCards, hasNextPage, endCursor } = useLoaderData<LoaderData>();
   const actionData = useActionData<ActionData>();
   const navigation = useNavigation();
   const params = useParams();
   const [showAddCard, setShowAddCard] = useState(false);
   const [activeTab, setActiveTab] = useState("cards");
+  const [cards, setCards] = useState<Card[]>(initialCards);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(hasNextPage);
+  const [cursor, setCursor] = useState<string | null>(endCursor);
+  const observer = useRef<IntersectionObserver | null>(null);
+  const lastCardElementRef = useCallback((node: HTMLDivElement | null) => {
+    if (loading) return;
+    if (observer.current) observer.current.disconnect();
+    observer.current = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting && hasMore) {
+        loadMoreCards();
+      }
+    });
+    if (node) observer.current.observe(node);
+  }, [loading, hasMore]);
 
-  console.log('Collection in component:', JSON.stringify(collection, null, 2));
-  console.log('All cards in component:', JSON.stringify(allCards, null, 2));
-  console.log('Number of all cards:', allCards.length);
-  console.log('Number of collection cards:', collection.cards.length);
+  const loadMoreCards = async () => {
+    if (!cursor || loading) return;
+    
+    setLoading(true);
+    const serverClient = createServerClient();
+    
+    try {
+      const { data, error } = await serverClient.query(CARDS_BY_GAME_QUERY, {
+        game: collection.game.toLowerCase(),
+        first: 50,
+        after: cursor,
+      }).toPromise();
+
+      if (error) {
+        console.error('Error loading more cards:', error);
+        return;
+      }
+
+      const newCards = data?.cardsByGame?.edges?.map((edge: any) => edge.node) || [];
+      setCards(prevCards => [...prevCards, ...newCards]);
+      setHasMore(data?.cardsByGame?.pageInfo?.hasNextPage || false);
+      setCursor(data?.cardsByGame?.pageInfo?.endCursor || null);
+    } catch (error) {
+      console.error('Error loading more cards:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Create a set of card IDs that are in the collection for quick lookup
   const collectionCardIds: Set<string> = new Set(collection.cards.map(card => card.card.id));
-
-  console.log('Collection card IDs:', Array.from(collectionCardIds));
 
   const handleCardClick = (card: Card) => {
     console.log('Card clicked:', card);
@@ -180,7 +222,7 @@ export default function CollectionDetail() {
                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
             }`}
           >
-            All Cards ({allCards.length})
+            All Cards ({cards.length})
           </button>
           <button
             onClick={() => setActiveTab("collection")}
@@ -196,11 +238,19 @@ export default function CollectionDetail() {
 
         <div className="mt-8">
           {activeTab === "cards" ? (
-            <CardGrid
-              cards={allCards}
-              collectionCardIds={collectionCardIds}
-              onCardClick={handleCardClick}
-            />
+            <>
+              <CardGrid
+                cards={cards}
+                collectionCardIds={collectionCardIds}
+                onCardClick={handleCardClick}
+                lastCardRef={lastCardElementRef}
+              />
+              {loading && (
+                <div className="text-center py-4">
+                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+                </div>
+              )}
+            </>
           ) : (
             <CollectionCardGrid
               cards={collection.cards}

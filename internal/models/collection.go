@@ -9,13 +9,14 @@ import (
 
 // Collection represents a user's card collection
 type Collection struct {
-	ID          uuid.UUID `json:"id"`
-	UserID      uuid.UUID `json:"userId"`
-	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Game        string    `json:"game"`
-	CreatedAt   time.Time `json:"createdAt"`
-	UpdatedAt   time.Time `json:"updatedAt"`
+	ID          uuid.UUID         `json:"id"`
+	Name        string            `json:"name"`
+	Description string            `json:"description"`
+	Game        string            `json:"game"`
+	UserID      uuid.UUID         `json:"userId"`
+	Cards       []*CollectionCard `json:"cards"`
+	CreatedAt   time.Time         `json:"createdAt"`
+	UpdatedAt   time.Time         `json:"updatedAt"`
 }
 
 // CollectionCard represents a card in a collection with its quantity and condition
@@ -23,13 +24,13 @@ type CollectionCard struct {
 	ID           uuid.UUID `json:"id"`
 	CollectionID uuid.UUID `json:"collectionId"`
 	CardID       uuid.UUID `json:"cardId"`
+	Card         *Card     `json:"card"`
 	Quantity     int       `json:"quantity"`
 	Condition    string    `json:"condition"`
 	IsFoil       bool      `json:"isFoil"`
 	Notes        string    `json:"notes"`
 	CreatedAt    time.Time `json:"createdAt"`
 	UpdatedAt    time.Time `json:"updatedAt"`
-	Card         *Card     `json:"card"`
 }
 
 // CollectionStore handles database operations for collections
@@ -307,7 +308,9 @@ func (s *CollectionStore) GetCards(collectionID uuid.UUID) ([]*CollectionCard, e
 			&card.Card.SetName,
 			&card.Card.Number,
 			&card.Card.Rarity,
-			&card.Card.ImageURL,
+			&card.Card.ImageUrl,
+			&card.Card.CreatedAt,
+			&card.Card.UpdatedAt,
 		)
 		if err != nil {
 			return nil, err

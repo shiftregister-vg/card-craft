@@ -40,7 +40,7 @@ func NewSearchService(cardStore *CardStore) *SearchService {
 // Search searches for cards based on the provided options
 func (s *SearchService) Search(opts types.SearchOptions) (*types.CardSearchResult, error) {
 	// Get all cards for the game
-	cards, err := s.cardStore.FindByGame(opts.Game)
+	cards, _, err := s.cardStore.FindByGame(opts.Game, 1000, "") // Use a large page size to get all cards
 	if err != nil {
 		return nil, fmt.Errorf("failed to search cards: %w", err)
 	}
@@ -87,7 +87,7 @@ func (s *SearchService) Search(opts types.SearchOptions) (*types.CardSearchResul
 
 // GetFilters returns the available filters for a game
 func (s *SearchService) GetFilters(game string) (*types.CardFilters, error) {
-	cards, err := s.cardStore.FindByGame(game)
+	cards, _, err := s.cardStore.FindByGame(game, 1000, "") // Use a large page size to get all cards
 	if err != nil {
 		return nil, fmt.Errorf("failed to get filters: %w", err)
 	}

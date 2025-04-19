@@ -16,9 +16,27 @@ type Card struct {
 	SetName   string    `json:"setName"`  // e.g., "Sword & Shield", "Spark of Rebellion", "The First Chapter"
 	Number    string    `json:"number"`   // e.g., "001/264", "001"
 	Rarity    string    `json:"rarity"`   // e.g., "Common", "Uncommon", "Rare", "Holo Rare"
-	ImageURL  string    `json:"imageUrl"` // URL to the card image
+	ImageUrl  string    `json:"imageUrl"` // URL to the card image
 	CreatedAt time.Time `json:"createdAt"`
 	UpdatedAt time.Time `json:"updatedAt"`
+}
+
+// CardConnection represents a paginated connection of cards
+type CardConnection struct {
+	Edges    []*CardEdge `json:"edges"`
+	PageInfo *PageInfo   `json:"pageInfo"`
+}
+
+// CardEdge represents an edge in a card connection
+type CardEdge struct {
+	Node   *Card  `json:"node"`
+	Cursor string `json:"cursor"`
+}
+
+// PageInfo represents pagination information
+type PageInfo struct {
+	HasNextPage bool    `json:"hasNextPage"`
+	EndCursor   *string `json:"endCursor"`
 }
 
 // CardStore handles database operations for cards
@@ -53,7 +71,7 @@ func (s *CardStore) Create(card *Card) error {
 		card.SetName,
 		card.Number,
 		card.Rarity,
-		card.ImageURL,
+		card.ImageUrl,
 		card.CreatedAt,
 		card.UpdatedAt,
 	)
@@ -79,7 +97,7 @@ func (s *CardStore) FindByID(id uuid.UUID) (*Card, error) {
 		&card.SetName,
 		&card.Number,
 		&card.Rarity,
-		&card.ImageURL,
+		&card.ImageUrl,
 		&card.CreatedAt,
 		&card.UpdatedAt,
 	)
@@ -118,7 +136,7 @@ func (s *CardStore) FindByGame(game string) ([]*Card, error) {
 			&card.SetName,
 			&card.Number,
 			&card.Rarity,
-			&card.ImageURL,
+			&card.ImageUrl,
 			&card.CreatedAt,
 			&card.UpdatedAt,
 		)
@@ -158,7 +176,7 @@ func (s *CardStore) FindBySet(game, setCode string) ([]*Card, error) {
 			&card.SetName,
 			&card.Number,
 			&card.Rarity,
-			&card.ImageURL,
+			&card.ImageUrl,
 			&card.CreatedAt,
 			&card.UpdatedAt,
 		)
@@ -189,7 +207,7 @@ func (s *CardStore) Update(card *Card) error {
 		card.SetName,
 		card.Number,
 		card.Rarity,
-		card.ImageURL,
+		card.ImageUrl,
 		card.UpdatedAt,
 		card.ID,
 	)
@@ -221,7 +239,7 @@ func (s *CardStore) FindByGameSetAndNumber(game string, setCode string, number s
 		&card.SetName,
 		&card.Number,
 		&card.Rarity,
-		&card.ImageURL,
+		&card.ImageUrl,
 		&card.CreatedAt,
 		&card.UpdatedAt,
 	)
