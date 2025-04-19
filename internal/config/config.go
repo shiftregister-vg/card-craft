@@ -11,18 +11,19 @@ import (
 )
 
 type Config struct {
-	DBHost          string
-	DBPort          int
-	DBUser          string
-	DBPassword      string
-	DBName          string
-	DBSSLMode       string
-	JWTSecret       string
-	JWTExpiration   time.Duration
-	RateLimit       int
-	RateLimitPeriod time.Duration
-	Port            string
-	Environment     string
+	DBHost            string
+	DBPort            int
+	DBUser            string
+	DBPassword        string
+	DBName            string
+	DBSSLMode         string
+	JWTSecret         string
+	JWTExpiration     time.Duration
+	RateLimit         int
+	RateLimitPeriod   time.Duration
+	Port              string
+	Environment       string
+	EnableCardImports bool
 }
 
 func Load() (*Config, error) {
@@ -48,20 +49,22 @@ func Load() (*Config, error) {
 	rateLimit, _ := strconv.Atoi(getEnv("RATE_LIMIT", "100"))
 	jwtExpiration, _ := time.ParseDuration(getEnv("JWT_EXPIRATION", "24h"))
 	rateLimitPeriod, _ := time.ParseDuration(getEnv("RATE_LIMIT_PERIOD", "1m"))
+	enableCardImports, _ := strconv.ParseBool(getEnv("ENABLE_CARD_IMPORTS", "false"))
 
 	return &Config{
-		DBHost:          getEnv("DB_HOST", "localhost"),
-		DBPort:          port,
-		DBUser:          getEnv("DB_USER", "postgres"),
-		DBPassword:      getEnv("DB_PASSWORD", "postgres"),
-		DBName:          getEnv("DB_NAME", "cardcraft"),
-		DBSSLMode:       getEnv("DB_SSLMODE", "disable"),
-		JWTSecret:       getEnv("JWT_SECRET", "your-secret-key-here"),
-		JWTExpiration:   jwtExpiration,
-		RateLimit:       rateLimit,
-		RateLimitPeriod: rateLimitPeriod,
-		Port:            getEnv("PORT", "8080"),
-		Environment:     getEnv("ENVIRONMENT", "development"),
+		DBHost:            getEnv("DB_HOST", "localhost"),
+		DBPort:            port,
+		DBUser:            getEnv("DB_USER", "postgres"),
+		DBPassword:        getEnv("DB_PASSWORD", "postgres"),
+		DBName:            getEnv("DB_NAME", "cardcraft"),
+		DBSSLMode:         getEnv("DB_SSLMODE", "disable"),
+		JWTSecret:         getEnv("JWT_SECRET", "your-secret-key-here"),
+		JWTExpiration:     jwtExpiration,
+		RateLimit:         rateLimit,
+		RateLimitPeriod:   rateLimitPeriod,
+		Port:              getEnv("PORT", "8080"),
+		Environment:       getEnv("ENVIRONMENT", "development"),
+		EnableCardImports: enableCardImports,
 	}, nil
 }
 

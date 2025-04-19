@@ -59,8 +59,13 @@ func main() {
 	starWarsImporter := cards.NewStarWarsImporter(cardStore)
 
 	sched := scheduler.NewScheduler(cardStore, pokemonImporter, lorcanaImporter, starWarsImporter)
-	sched.Start()
-	defer sched.Stop()
+	if cfg.EnableCardImports {
+		log.Println("Card imports are enabled, starting scheduler...")
+		sched.Start()
+		defer sched.Stop()
+	} else {
+		log.Println("Card imports are disabled, scheduler will not run")
+	}
 
 	// Create GraphQL server
 	schema := generated.NewExecutableSchema(generated.Config{
