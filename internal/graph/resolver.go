@@ -15,7 +15,7 @@ import (
 // Resolver is the root resolver
 type Resolver struct {
 	authService     *auth.Service
-	cardStore       *models.CardStore
+	cardStore       *cards.CardStore
 	deckStore       *models.DeckStore
 	collectionStore *models.CollectionStore
 	searchService   *cards.SearchService
@@ -24,7 +24,7 @@ type Resolver struct {
 // NewResolver creates a new resolver
 func NewResolver(
 	authService *auth.Service,
-	cardStore *models.CardStore,
+	cardStore *cards.CardStore,
 	deckStore *models.DeckStore,
 	collectionStore *models.CollectionStore,
 	searchService *cards.SearchService,

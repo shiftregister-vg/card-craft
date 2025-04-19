@@ -177,6 +177,9 @@ type Mutation {
   addCardToCollection(collectionId: ID!, input: CollectionCardInput!): CollectionCard!
   updateCollectionCard(id: ID!, input: CollectionCardInput!): CollectionCard!
   removeCardFromCollection(id: ID!): Boolean!
+  
+  # Import cards for a specific game
+  importCards(game: String!): Boolean!
 }
 
 type ImportResult {

@@ -1,5 +1,7 @@
 github.com/99designs/gqlgen v0.17.70 h1:xgLIgQuG+Q2L/AE9cW595CT7xCWCe/bpPIFGSfsGSGs=
 github.com/99designs/gqlgen v0.17.70/go.mod h1:fvCiqQAu2VLhKXez2xFvLmE47QgAPf/KTPN5XQ4rsHQ=
+github.com/PokemonTCG/pokemon-tcg-sdk-go-v2 v0.1.1 h1:Y77cb7++XBl3H9raEW6p/MNzRHgpXeK+dNh1OV8NOw0=
+github.com/PokemonTCG/pokemon-tcg-sdk-go-v2 v0.1.1/go.mod h1:kAcPMm0IbuQMaDLtQ+aWrkeJyX8CAcR4I5AyIglC1vY=
 github.com/PuerkitoBio/goquery v1.10.2 h1:7fh2BdHcG6VFZsK7toXBT/Bh1z5Wmy8Q9MV9HqT2AM8=
 github.com/PuerkitoBio/goquery v1.10.2/go.mod h1:0guWGjcLu9AYC7C1GHnpysHy056u9aEkUHwhdnePMCU=
 github.com/agnivade/levenshtein v1.2.1 h1:EHBY3UOn1gwdy/VbFwgo4cxecRznFk7fKWN1KOX7eoM=

@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/shiftregister-vg/card-craft/internal/models"
 	"github.com/shiftregister-vg/card-craft/internal/types"
 )
 
@@ -22,7 +21,7 @@ type SearchOptions struct {
 
 // SearchResult represents the result of a card search
 type SearchResult struct {
-	Cards      []*models.Card
+	Cards      []*types.Card
 	TotalCount int
 	Page       int
 	PageSize   int
@@ -30,11 +29,11 @@ type SearchResult struct {
 
 // SearchService handles card search and filtering
 type SearchService struct {
-	cardStore *models.CardStore
+	cardStore *CardStore
 }
 
 // NewSearchService creates a new SearchService
-func NewSearchService(cardStore *models.CardStore) *SearchService {
+func NewSearchService(cardStore *CardStore) *SearchService {
 	return &SearchService{cardStore: cardStore}
 }
 
@@ -47,7 +46,7 @@ func (s *SearchService) Search(opts types.SearchOptions) (*types.CardSearchResul
 	}
 
 	// Apply filters
-	var filteredCards []*models.Card
+	var filteredCards []*types.Card
 	for _, card := range cards {
 		if opts.SetCode != "" && card.SetCode != opts.SetCode {
 			continue

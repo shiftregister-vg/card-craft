@@ -7,8 +7,20 @@ export const MY_COLLECTIONS_QUERY = gql`
       name
       description
       game
-      createdAt
-      updatedAt
+      cards {
+        id
+      }
+    }
+  }
+`;
+
+export const COLLECTION_QUERY = gql`
+  query Collection($id: ID!) {
+    collection(id: $id) {
+      id
+      name
+      description
+      game
       cards {
         id
         quantity
@@ -31,20 +43,21 @@ export const MY_COLLECTIONS_QUERY = gql`
 `;
 
 export const CREATE_COLLECTION_MUTATION = gql`
-  mutation CreateCollection($input: CollectionInput!) {
+  mutation CreateCollection($input: CreateCollectionInput!) {
     createCollection(input: $input) {
       id
       name
       description
       game
-      createdAt
-      updatedAt
+      cards {
+        id
+      }
     }
   }
 `;
 
 export const ADD_CARD_TO_COLLECTION_MUTATION = gql`
-  mutation AddCardToCollection($collectionId: ID!, $input: CollectionCardInput!) {
+  mutation AddCardToCollection($collectionId: ID!, $input: AddCardToCollectionInput!) {
     addCardToCollection(collectionId: $collectionId, input: $input) {
       id
       quantity
@@ -79,6 +92,8 @@ export const UPDATE_COLLECTION_CARD_MUTATION = gql`
 
 export const REMOVE_CARD_FROM_COLLECTION_MUTATION = gql`
   mutation RemoveCardFromCollection($id: ID!) {
-    removeCardFromCollection(id: $id)
+    removeCardFromCollection(id: $id) {
+      id
+    }
   }
 `; 

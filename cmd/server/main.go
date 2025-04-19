@@ -4,6 +4,13 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/99designs/gqlgen/graphql/handler"
+	"github.com/99designs/gqlgen/graphql/handler/extension"
+	"github.com/99designs/gqlgen/graphql/handler/lru"
+	"github.com/99designs/gqlgen/graphql/handler/transport"
+	"github.com/99designs/gqlgen/graphql/playground"
+	"github.com/vektah/gqlparser/v2/ast"
+
 	"github.com/shiftregister-vg/card-craft/internal/auth"
 	"github.com/shiftregister-vg/card-craft/internal/cards"
 	"github.com/shiftregister-vg/card-craft/internal/config"
@@ -12,13 +19,7 @@ import (
 	"github.com/shiftregister-vg/card-craft/internal/graph/generated"
 	"github.com/shiftregister-vg/card-craft/internal/middleware"
 	"github.com/shiftregister-vg/card-craft/internal/models"
-
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/handler/extension"
-	"github.com/99designs/gqlgen/graphql/handler/lru"
-	"github.com/99designs/gqlgen/graphql/handler/transport"
-	"github.com/99designs/gqlgen/graphql/playground"
-	"github.com/vektah/gqlparser/v2/ast"
+	"github.com/shiftregister-vg/card-craft/internal/scheduler"
 )
 
 func main() {
@@ -36,7 +37,7 @@ func main() {
 	defer db.Close()
 
 	// Initialize stores
-	cardStore := models.NewCardStore(db.DB)
+	cardStore := cards.NewCardStore(db.DB)
 	deckStore := models.NewDeckStore(db.DB)
 	userStore := models.NewUserStore(db.DB)
 	collectionStore := models.NewCollectionStore(db.DB)
@@ -51,6 +52,15 @@ func main() {
 	// Initialize services
 	authService := auth.NewService(cfg.JWTSecret, userStore)
 	searchService := cards.NewSearchService(cardStore)
+
+	// Initialize and start the scheduler for card imports
+	pokemonImporter := cards.NewPokemonImporter(cardStore)
+	lorcanaImporter := cards.NewLorcanaImporter(cardStore)
+	starWarsImporter := cards.NewStarWarsImporter(cardStore)
+
+	sched := scheduler.NewScheduler(pokemonImporter, lorcanaImporter, starWarsImporter)
+	sched.Start()
+	defer sched.Stop()
 
 	// Create GraphQL server
 	schema := generated.NewExecutableSchema(generated.Config{
@@ -76,13 +86,12 @@ func main() {
 	})
 
 	// Create HTTP server with middleware
-	mux := http.NewServeMux()
-	mux.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	mux.Handle("/query", authMiddleware.Middleware(rateLimitMiddleware.Middleware(graphqlHandler)))
+	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
+	http.Handle("/query", rateLimitMiddleware.Middleware(authMiddleware.Middleware(graphqlHandler)))
 
 	// Start server
-	log.Printf("Server running on http://localhost:%s", cfg.Port)
-	if err := http.ListenAndServe(":"+cfg.Port, mux); err != nil {
+	log.Printf("Server is running on http://localhost:%s", cfg.Port)
+	if err := http.ListenAndServe(":"+cfg.Port, nil); err != nil {
 		log.Fatalf("Error starting server: %v", err)
 	}
 }

@@ -17,6 +17,7 @@ require (
 )
 
 require (
+	github.com/PokemonTCG/pokemon-tcg-sdk-go-v2 v0.1.1 // indirect
 	github.com/agnivade/levenshtein v1.2.1 // indirect
 	github.com/cpuguy83/go-md2man/v2 v2.0.5 // indirect
 	github.com/go-viper/mapstructure/v2 v2.2.1 // indirect

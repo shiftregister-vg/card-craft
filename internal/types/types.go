@@ -1,8 +1,24 @@
 package types
 
 import (
-	"github.com/shiftregister-vg/card-craft/internal/models"
+	"time"
+
+	"github.com/google/uuid"
 )
+
+// Card represents a trading card in the database
+type Card struct {
+	ID        uuid.UUID
+	Name      string
+	Game      string
+	SetCode   string
+	SetName   string
+	Number    string
+	Rarity    string
+	ImageURL  string
+	CreatedAt time.Time
+	UpdatedAt time.Time
+}
 
 // CardInput represents the input for creating or updating a card
 type CardInput struct {
@@ -48,8 +64,8 @@ type CardFilters struct {
 
 // CardSearchResult represents the result of a card search
 type CardSearchResult struct {
-	Cards    []*models.Card `json:"cards"`
-	Total    int            `json:"total"`
-	Page     int            `json:"page"`
-	PageSize int            `json:"pageSize"`
+	Cards    []*Card `json:"cards"`
+	Total    int     `json:"total"`
+	Page     int     `json:"page"`
+	PageSize int     `json:"pageSize"`
 }

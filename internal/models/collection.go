@@ -29,6 +29,7 @@ type CollectionCard struct {
 	Notes        string    `json:"notes"`
 	CreatedAt    time.Time `json:"createdAt"`
 	UpdatedAt    time.Time `json:"updatedAt"`
+	Card         *Card     `json:"card"`
 }
 
 // CollectionStore handles database operations for collections
@@ -268,11 +269,14 @@ func (s *CollectionStore) RemoveCard(id uuid.UUID) error {
 // GetCards retrieves all cards in a collection
 func (s *CollectionStore) GetCards(collectionID uuid.UUID) ([]*CollectionCard, error) {
 	query := `
-		SELECT id, collection_id, card_id, quantity, condition, is_foil, notes,
-			created_at, updated_at
-		FROM collection_cards
-		WHERE collection_id = $1
-		ORDER BY created_at DESC
+		SELECT 
+			cc.id, cc.collection_id, cc.card_id, cc.quantity, cc.condition, cc.is_foil, cc.notes,
+			cc.created_at, cc.updated_at,
+			c.id, c.name, c.game, c.set_code, c.set_name, c.number, c.rarity, c.image_url
+		FROM collection_cards cc
+		JOIN cards c ON cc.card_id = c.id
+		WHERE cc.collection_id = $1
+		ORDER BY cc.created_at DESC
 	`
 
 	rows, err := s.db.Query(query, collectionID)
@@ -283,7 +287,9 @@ func (s *CollectionStore) GetCards(collectionID uuid.UUID) ([]*CollectionCard, e
 
 	var cards []*CollectionCard
 	for rows.Next() {
-		card := &CollectionCard{}
+		card := &CollectionCard{
+			Card: &Card{},
+		}
 		err := rows.Scan(
 			&card.ID,
 			&card.CollectionID,
@@ -294,6 +300,14 @@ func (s *CollectionStore) GetCards(collectionID uuid.UUID) ([]*CollectionCard, e
 			&card.Notes,
 			&card.CreatedAt,
 			&card.UpdatedAt,
+			&card.Card.ID,
+			&card.Card.Name,
+			&card.Card.Game,
+			&card.Card.SetCode,
+			&card.Card.SetName,
+			&card.Card.Number,
+			&card.Card.Rarity,
+			&card.Card.ImageURL,
 		)
 		if err != nil {
 			return nil, err

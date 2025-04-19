@@ -13,6 +13,7 @@ type Database struct {
 	*sql.DB
 }
 
+// New creates a new database connection using the provided configuration
 func New(cfg *config.Config) (*Database, error) {
 	connStr := fmt.Sprintf(
 		"host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",

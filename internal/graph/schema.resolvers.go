@@ -12,6 +12,7 @@ import (
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/google/uuid"
 	"github.com/shiftregister-vg/card-craft/internal/auth"
+	"github.com/shiftregister-vg/card-craft/internal/cards"
 	"github.com/shiftregister-vg/card-craft/internal/graph/generated"
 	"github.com/shiftregister-vg/card-craft/internal/graph/model"
 	"github.com/shiftregister-vg/card-craft/internal/models"
@@ -432,6 +433,29 @@ func (r *mutationResolver) RemoveCardFromCollection(ctx context.Context, id stri
 
 	if err := r.collectionStore.RemoveCard(cardUUID); err != nil {
 		return false, err
+	}
+
+	return true, nil
+}
+
+// ImportCards is the resolver for the importCards mutation
+func (r *mutationResolver) ImportCards(ctx context.Context, game string) (bool, error) {
+	// Get the importer for the specified game
+	var importer cards.CardImporter
+	switch game {
+	case "pokemon":
+		importer = cards.NewPokemonImporter(r.cardStore)
+	case "lorcana":
+		importer = cards.NewLorcanaImporter(r.cardStore)
+	case "starwars":
+		importer = cards.NewStarWarsImporter(r.cardStore)
+	default:
+		return false, fmt.Errorf("unsupported game: %s", game)
+	}
+
+	// Run the import
+	if err := importer.ImportLatestSets(); err != nil {
+		return false, fmt.Errorf("failed to import cards: %w", err)
 	}
 
 	return true, nil

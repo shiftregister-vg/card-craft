@@ -1,10 +1,13 @@
 package config
 
 import (
+	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
-	// "github.com/joho/godotenv"
+
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -23,9 +26,23 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	// if err := godotenv.Load(); err != nil {
-	// 	return nil, err
-	// }
+	projectRoot := os.Getenv("DEVBOX_PROJECT_ROOT")
+	if projectRoot == "" {
+		return nil, fmt.Errorf("DEVBOX_PROJECT_ROOT environment variable is not set")
+	}
+
+	// First, load the .env file from DEVBOX_PROJECT_ROOT
+	envPath := filepath.Join(projectRoot, ".env")
+	if err := godotenv.Load(envPath); err != nil {
+		// Don't return error if .env doesn't exist
+		fmt.Printf("Warning: .env file not found: %v\n", err)
+	}
+
+	// Then, load .env.localhost from DEVBOX_PROJECT_ROOT
+	envLocalhostPath := filepath.Join(projectRoot, ".env.localhost")
+	if err := godotenv.Load(envLocalhostPath); err != nil {
+		return nil, fmt.Errorf("failed to load environment file %s: %w", envLocalhostPath, err)
+	}
 
 	port, _ := strconv.Atoi(getEnv("DB_PORT", "5432"))
 	rateLimit, _ := strconv.Atoi(getEnv("RATE_LIMIT", "100"))
