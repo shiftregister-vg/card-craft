@@ -43,15 +43,14 @@ export const COLLECTION_QUERY = gql`
 `;
 
 export const CREATE_COLLECTION_MUTATION = gql`
-  mutation CreateCollection($input: CreateCollectionInput!) {
+  mutation CreateCollection($input: CollectionInput!) {
     createCollection(input: $input) {
       id
       name
       description
       game
-      cards {
-        id
-      }
+      createdAt
+      updatedAt
     }
   }
 `;
