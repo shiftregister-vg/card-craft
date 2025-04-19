@@ -3,6 +3,8 @@ package graph
 //go:generate go run github.com/99designs/gqlgen generate
 
 import (
+	"database/sql"
+
 	"github.com/shiftregister-vg/card-craft/internal/auth"
 	"github.com/shiftregister-vg/card-craft/internal/cards"
 	"github.com/shiftregister-vg/card-craft/internal/models"
@@ -12,28 +14,31 @@ import (
 //
 // It serves as dependency injection for your app, add any dependencies you require here.
 
-// Resolver is the root resolver
+// Resolver serves as dependency injection for your app, add any dependencies you require here.
 type Resolver struct {
-	authService     *auth.Service
+	db              *sql.DB
 	cardStore       *cards.CardStore
+	pokemonStore    *cards.PokemonCardStore
 	deckStore       *models.DeckStore
 	collectionStore *models.CollectionStore
-	searchService   *cards.SearchService
+	authService     *auth.Service
 }
 
-// NewResolver creates a new resolver
+// NewResolver creates a new resolver with the given dependencies
 func NewResolver(
-	authService *auth.Service,
+	db *sql.DB,
 	cardStore *cards.CardStore,
+	pokemonStore *cards.PokemonCardStore,
 	deckStore *models.DeckStore,
 	collectionStore *models.CollectionStore,
-	searchService *cards.SearchService,
+	authService *auth.Service,
 ) *Resolver {
 	return &Resolver{
-		authService:     authService,
+		db:              db,
 		cardStore:       cardStore,
+		pokemonStore:    pokemonStore,
 		deckStore:       deckStore,
 		collectionStore: collectionStore,
-		searchService:   searchService,
+		authService:     authService,
 	}
 }

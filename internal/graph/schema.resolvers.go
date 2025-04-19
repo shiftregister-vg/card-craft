@@ -82,7 +82,11 @@ func (r *collectionCardResolver) CardID(ctx context.Context, obj *models.Collect
 
 // Card is the resolver for the card field.
 func (r *collectionCardResolver) Card(ctx context.Context, obj *models.CollectionCard) (*models.Card, error) {
-	return r.cardStore.FindByID(obj.CardID)
+	typesCard, err := r.cardStore.FindByID(obj.CardID)
+	if err != nil {
+		return nil, err
+	}
+	return r.cardStore.ToModel(typesCard), nil
 }
 
 // CreatedAt is the resolver for the createdAt field.
@@ -438,24 +442,18 @@ func (r *mutationResolver) RemoveCardFromCollection(ctx context.Context, id stri
 	return true, nil
 }
 
-// ImportCards is the resolver for the importCards mutation
+// ImportCards is the resolver for the importCards field.
 func (r *mutationResolver) ImportCards(ctx context.Context, game string) (bool, error) {
-	// Get the importer for the specified game
 	var importer cards.CardImporter
 	switch game {
 	case "pokemon":
-		importer = cards.NewPokemonImporter(r.cardStore)
-	case "lorcana":
-		importer = cards.NewLorcanaImporter(r.cardStore)
-	case "starwars":
-		importer = cards.NewStarWarsImporter(r.cardStore)
+		importer = cards.NewPokemonImporter(r.cardStore, r.pokemonStore)
 	default:
 		return false, fmt.Errorf("unsupported game: %s", game)
 	}
 
-	// Run the import
-	if err := importer.ImportLatestSets(); err != nil {
-		return false, fmt.Errorf("failed to import cards: %w", err)
+	if err := importer.Import(ctx, r.cardStore); err != nil {
+		return false, err
 	}
 
 	return true, nil

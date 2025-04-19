@@ -18,18 +18,18 @@ func NewLorcanaImporter(store *CardStore) *LorcanaImporter {
 
 // Import implements the Importer interface
 func (i *LorcanaImporter) Import(ctx context.Context, store *CardStore) error {
-	return i.ImportLatestSets()
+	return i.ImportLatestSets(ctx)
 }
 
 // ImportSet imports all cards from a specific set
-func (i *LorcanaImporter) ImportSet(setID string) error {
+func (i *LorcanaImporter) ImportSet(ctx context.Context, setID string) error {
 	// TODO: Implement Lorcana set import
 	// This will need to be implemented once we have access to the Lorcana API or data source
 	return nil
 }
 
 // ImportLatestSets imports cards from the latest Lorcana sets
-func (i *LorcanaImporter) ImportLatestSets() error {
+func (i *LorcanaImporter) ImportLatestSets(ctx context.Context) error {
 	// TODO: Implement Lorcana latest sets import
 	// This will need to be implemented once we have access to the Lorcana API or data source
 	return nil

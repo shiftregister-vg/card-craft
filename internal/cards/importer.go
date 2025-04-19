@@ -8,13 +8,9 @@ import (
 	"github.com/shiftregister-vg/card-craft/internal/types"
 )
 
-// CardImporter defines the interface for importing cards from different games
+// CardImporter defines the interface for importing cards
 type CardImporter interface {
-	// ImportLatestSets imports the latest sets for the game
-	ImportLatestSets() error
-	// ImportSet imports a specific set by its identifier
-	ImportSet(setID string) error
-	// GetGame returns the game identifier (e.g., "pokemon", "lorcana", "starwars")
+	Import(ctx context.Context, store *CardStore) error
 	GetGame() string
 }
 

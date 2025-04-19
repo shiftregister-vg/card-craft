@@ -38,6 +38,7 @@ func main() {
 
 	// Initialize stores
 	cardStore := cards.NewCardStore(db.DB)
+	pokemonStore := cards.NewPokemonCardStore(db.DB)
 	deckStore := models.NewDeckStore(db.DB)
 	userStore := models.NewUserStore(db.DB)
 	collectionStore := models.NewCollectionStore(db.DB)
@@ -51,10 +52,9 @@ func main() {
 
 	// Initialize services
 	authService := auth.NewService(cfg.JWTSecret, userStore)
-	searchService := cards.NewSearchService(cardStore)
 
 	// Initialize and start the scheduler for card imports
-	pokemonImporter := cards.NewPokemonImporter(cardStore)
+	pokemonImporter := cards.NewPokemonImporter(cardStore, pokemonStore)
 	lorcanaImporter := cards.NewLorcanaImporter(cardStore)
 	starWarsImporter := cards.NewStarWarsImporter(cardStore)
 
@@ -64,7 +64,14 @@ func main() {
 
 	// Create GraphQL server
 	schema := generated.NewExecutableSchema(generated.Config{
-		Resolvers: graph.NewResolver(authService, cardStore, deckStore, collectionStore, searchService),
+		Resolvers: graph.NewResolver(
+			db.DB,
+			cardStore,
+			pokemonStore,
+			deckStore,
+			collectionStore,
+			authService,
+		),
 	})
 
 	// Create GraphQL handler with recommended configuration

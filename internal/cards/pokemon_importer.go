@@ -301,3 +301,8 @@ type PokemonAPICard struct {
 	Resistances []Resistance
 	RetreatCost []string `json:"retreatCost"`
 }
+
+// GetGame returns the game type for this importer
+func (i *PokemonImporter) GetGame() string {
+	return "pokemon"
+}
