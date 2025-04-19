@@ -22,27 +22,31 @@ import (
 
 // ID is the resolver for the id field.
 func (r *cardResolver) ID(ctx context.Context, obj *models.Card) (string, error) {
-	panic(fmt.Errorf("not implemented: ID - id"))
+	return obj.ID.String(), nil
 }
 
 // CreatedAt is the resolver for the createdAt field.
 func (r *cardResolver) CreatedAt(ctx context.Context, obj *models.Card) (string, error) {
-	panic(fmt.Errorf("not implemented: CreatedAt - createdAt"))
+	return obj.CreatedAt.Format(time.RFC3339), nil
 }
 
 // UpdatedAt is the resolver for the updatedAt field.
 func (r *cardResolver) UpdatedAt(ctx context.Context, obj *models.Card) (string, error) {
-	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
+	return obj.UpdatedAt.Format(time.RFC3339), nil
 }
 
 // Cards is the resolver for the cards field.
 func (r *cardSearchResultResolver) Cards(ctx context.Context, obj *types.CardSearchResult) ([]*models.Card, error) {
-	panic(fmt.Errorf("not implemented: Cards - cards"))
+	result := make([]*models.Card, len(obj.Cards))
+	for i, card := range obj.Cards {
+		result[i] = r.cardStore.ToModel(card)
+	}
+	return result, nil
 }
 
 // TotalCount is the resolver for the totalCount field.
 func (r *cardSearchResultResolver) TotalCount(ctx context.Context, obj *types.CardSearchResult) (int, error) {
-	panic(fmt.Errorf("not implemented: TotalCount - totalCount"))
+	return obj.Total, nil
 }
 
 // ID is the resolver for the id field.
@@ -93,6 +97,15 @@ func (r *collectionCardResolver) CreatedAt(ctx context.Context, obj *models.Coll
 // UpdatedAt is the resolver for the updatedAt field.
 func (r *collectionCardResolver) UpdatedAt(ctx context.Context, obj *models.CollectionCard) (string, error) {
 	return obj.UpdatedAt.Format(time.RFC3339), nil
+}
+
+// Card is the resolver for the card field.
+func (r *collectionCardResolver) Card(ctx context.Context, obj *models.CollectionCard) (*models.Card, error) {
+	typesCard, err := r.cardStore.FindByID(obj.CardID)
+	if err != nil {
+		return nil, err
+	}
+	return r.cardStore.ToModel(typesCard), nil
 }
 
 // ID is the resolver for the id field.
@@ -462,7 +475,16 @@ func (r *queryResolver) Card(ctx context.Context, id string) (*models.Card, erro
 
 // CardsByGame is the resolver for the cardsByGame field.
 func (r *queryResolver) CardsByGame(ctx context.Context, game string) ([]*models.Card, error) {
-	panic(fmt.Errorf("not implemented: CardsByGame - cardsByGame"))
+	cards, err := r.cardStore.FindByGame(game)
+	if err != nil {
+		return nil, err
+	}
+
+	result := make([]*models.Card, len(cards))
+	for i, card := range cards {
+		result[i] = r.cardStore.ToModel(card)
+	}
+	return result, nil
 }
 
 // CardsBySet is the resolver for the cardsBySet field.

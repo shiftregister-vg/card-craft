@@ -97,7 +97,7 @@ func (s *CardStore) FindByGame(game string) ([]*Card, error) {
 		SELECT id, name, game, set_code, set_name, number, rarity, image_url,
 			created_at, updated_at
 		FROM cards
-		WHERE game = $1
+		WHERE LOWER(game) = LOWER($1)
 		ORDER BY set_code, number
 	`
 

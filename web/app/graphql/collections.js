@@ -1,32 +1,25 @@
 import { gql } from '@urql/core';
 
-export const MY_COLLECTIONS_QUERY = gql`
-  query MyCollections {
-    myCollections {
-      id
-      name
-      description
-      game
-      cards {
-        id
-      }
-    }
-  }
-`;
-
 export const COLLECTION_QUERY = gql`
   query Collection($id: ID!) {
     collection(id: $id) {
       id
+      userId
       name
       description
       game
+      createdAt
+      updatedAt
       cards {
         id
+        collectionId
+        cardId
         quantity
         condition
         isFoil
         notes
+        createdAt
+        updatedAt
         card {
           id
           name
@@ -36,14 +29,47 @@ export const COLLECTION_QUERY = gql`
           number
           rarity
           imageUrl
+          createdAt
+          updatedAt
         }
       }
     }
   }
 `;
 
+export const MY_COLLECTIONS_QUERY = gql`
+  query MyCollections {
+    myCollections {
+      id
+      name
+      description
+      game
+      createdAt
+      updatedAt
+      cardCount
+    }
+  }
+`;
+
+export const CARDS_BY_GAME_QUERY = gql`
+  query CardsByGame($game: String!) {
+    cardsByGame(game: $game) {
+      id
+      name
+      game
+      setCode
+      setName
+      number
+      rarity
+      imageUrl
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
 export const CREATE_COLLECTION_MUTATION = gql`
-  mutation CreateCollection($input: CollectionInput!) {
+  mutation CreateCollection($input: CreateCollectionInput!) {
     createCollection(input: $input) {
       id
       name
@@ -56,13 +82,17 @@ export const CREATE_COLLECTION_MUTATION = gql`
 `;
 
 export const ADD_CARD_TO_COLLECTION_MUTATION = gql`
-  mutation AddCardToCollection($collectionId: ID!, $input: AddCardToCollectionInput!) {
+  mutation AddCardToCollection($collectionId: ID!, $input: CollectionCardInput!) {
     addCardToCollection(collectionId: $collectionId, input: $input) {
       id
+      collectionId
+      cardId
       quantity
       condition
       isFoil
       notes
+      createdAt
+      updatedAt
       card {
         id
         name
@@ -72,27 +102,15 @@ export const ADD_CARD_TO_COLLECTION_MUTATION = gql`
         number
         rarity
         imageUrl
+        createdAt
+        updatedAt
       }
-    }
-  }
-`;
-
-export const UPDATE_COLLECTION_CARD_MUTATION = gql`
-  mutation UpdateCollectionCard($id: ID!, $input: CollectionCardInput!) {
-    updateCollectionCard(id: $id, input: $input) {
-      id
-      quantity
-      condition
-      isFoil
-      notes
     }
   }
 `;
 
 export const REMOVE_CARD_FROM_COLLECTION_MUTATION = gql`
   mutation RemoveCardFromCollection($id: ID!) {
-    removeCardFromCollection(id: $id) {
-      id
-    }
+    removeCardFromCollection(id: $id)
   }
 `; 

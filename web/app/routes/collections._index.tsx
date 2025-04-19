@@ -51,7 +51,7 @@ export async function action({ request }: ActionFunctionArgs) {
     input: {
       name,
       description,
-      game,
+      game: game.toLowerCase(),
     },
   }).toPromise();
 
@@ -131,9 +131,9 @@ export default function Collections() {
                       className="mt-1 block w-full border border-gray-300 rounded-md shadow-sm py-2 px-3 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm bg-white text-gray-900"
                     >
                       <option value="">Select a game</option>
-                      <option value="POKEMON">Pokémon</option>
-                      <option value="LORCANA">Disney Lorcana</option>
-                      <option value="STARWARS">Star Wars: Unlimited</option>
+                      <option value="pokemon">Pokémon</option>
+                      <option value="lorcana">Disney Lorcana</option>
+                      <option value="starwars">Star Wars: Unlimited</option>
                     </select>
                   </div>
                   <div>
