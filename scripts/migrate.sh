@@ -37,7 +37,7 @@ DB_URL="postgres://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}?ss
 CMD=$1
 
 # Use migrate from Go bin
-MIGRATE_CMD="$HOME/go/bin/migrate"
+MIGRATE_CMD="migrate"
 
 case $CMD in
   "up")

@@ -4,7 +4,8 @@
     "postgresql@latest",
     "nodejs@20",
     "git@latest",
-    "air@latest"
+    "air@latest",
+    "go-migrate@latest"
   ],
   "env": {
     "DEVBOX_COREPACK_ENABLED": "true"
@@ -13,7 +14,7 @@
     "init_hook": "go mod tidy && cd web && pnpm i && cd ..",
     "scripts": {
       "server": ["go run cmd/server/main.go"],
-      "seed": ["go run cmd/seed/main.go"],
+      "seed":   ["go run cmd/seed/main.go"],
       "init-db": [
         "echo \"Setting up database\"",
         "echo \"Removing existing data dir @ $PGDATA\"",
@@ -31,8 +32,8 @@
         "psql postgres -c \"ALTER DATABASE postgres OWNER TO \\\"card-craft\\\";\"",
         "pg_ctl stop -m fast"
       ],
-      "migrate:up": "scripts/migrate.sh up",
-      "migrate:down": "scripts/migrate.sh down",
+      "migrate:up":     "scripts/migrate.sh up",
+      "migrate:down":   "scripts/migrate.sh down",
       "migrate:create": "scripts/migrate.sh create"
     }
   }

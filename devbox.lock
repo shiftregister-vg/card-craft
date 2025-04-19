@@ -153,6 +153,54 @@
         }
       }
     },
+    "go-migrate@latest": {
+      "last_modified": "2025-04-01T01:49:33Z",
+      "resolved": "github:NixOS/nixpkgs/88e992074d86ad50249de12b7fb8dbaadf8dc0c5#go-migrate",
+      "source": "devbox-search",
+      "version": "4.18.2",
+      "systems": {
+        "aarch64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/zgpw0qmddgi7wk0cj9qfv297mv2m1kyh-go-migrate-4.18.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/zgpw0qmddgi7wk0cj9qfv297mv2m1kyh-go-migrate-4.18.2"
+        },
+        "aarch64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/9l13rfjjdyzl75z75chs7k84r7bpddj7-go-migrate-4.18.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/9l13rfjjdyzl75z75chs7k84r7bpddj7-go-migrate-4.18.2"
+        },
+        "x86_64-darwin": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/xrhr3rdh2impn71dlzvmckbjg3hbai3j-go-migrate-4.18.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/xrhr3rdh2impn71dlzvmckbjg3hbai3j-go-migrate-4.18.2"
+        },
+        "x86_64-linux": {
+          "outputs": [
+            {
+              "name": "out",
+              "path": "/nix/store/cf8nv3fmm54nq1fq42lc4dsjhwfaw92k-go-migrate-4.18.2",
+              "default": true
+            }
+          ],
+          "store_path": "/nix/store/cf8nv3fmm54nq1fq42lc4dsjhwfaw92k-go-migrate-4.18.2"
+        }
+      }
+    },
     "go@1.24.1": {
       "last_modified": "2025-03-11T17:52:14Z",
       "resolved": "github:NixOS/nixpkgs/0d534853a55b5d02a4ababa1d71921ce8f0aee4c#go",
