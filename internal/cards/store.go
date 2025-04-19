@@ -4,6 +4,7 @@ import (
 	"database/sql"
 
 	"github.com/google/uuid"
+	"github.com/shiftregister-vg/card-craft/internal/models"
 	"github.com/shiftregister-vg/card-craft/internal/types"
 )
 
@@ -235,4 +236,22 @@ func (s *CardStore) Delete(id uuid.UUID) error {
 	query := `DELETE FROM cards WHERE id = $1`
 	_, err := s.db.Exec(query, id)
 	return err
+}
+
+// ToModel converts a types.Card to a models.Card
+func (s *CardStore) ToModel(card *types.Card) *models.Card {
+	if card == nil {
+		return nil
+	}
+	id, _ := uuid.Parse(card.ID.String())
+	return &models.Card{
+		ID:       id,
+		Name:     card.Name,
+		Game:     card.Game,
+		SetCode:  card.SetCode,
+		SetName:  card.SetName,
+		Number:   card.Number,
+		Rarity:   card.Rarity,
+		ImageURL: card.ImageURL,
+	}
 }

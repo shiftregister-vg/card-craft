@@ -58,7 +58,7 @@ func main() {
 	lorcanaImporter := cards.NewLorcanaImporter(cardStore)
 	starWarsImporter := cards.NewStarWarsImporter(cardStore)
 
-	sched := scheduler.NewScheduler(pokemonImporter, lorcanaImporter, starWarsImporter)
+	sched := scheduler.NewScheduler(cardStore, pokemonImporter, lorcanaImporter, starWarsImporter)
 	sched.Start()
 	defer sched.Stop()
 

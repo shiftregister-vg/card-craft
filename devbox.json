@@ -5,13 +5,19 @@
     "nodejs@20",
     "git@latest",
     "air@latest",
-    "go-migrate@latest"
+    "go-migrate@latest",
+    "gopls@latest"
   ],
   "env": {
-    "DEVBOX_COREPACK_ENABLED": "true"
+    "DEVBOX_COREPACK_ENABLED": "true",
+    "GOPATH": "$PWD/.devbox/bin/go/bin",
   },
   "shell": {
-    "init_hook": "go mod tidy && cd web && pnpm i && cd ..",
+    "init_hook": [
+      "export PATH=$PATH:$PWD/.devbox/bin/go/bin",
+      "go mod tidy",
+      "cd web && pnpm i"
+    ],
     "scripts": {
       "server": ["go run cmd/server/main.go"],
       "seed":   ["go run cmd/seed/main.go"],

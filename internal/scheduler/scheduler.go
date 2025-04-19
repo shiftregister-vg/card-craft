@@ -1,6 +1,7 @@
 package scheduler
 
 import (
+	"context"
 	"log"
 	"time"
 
@@ -10,13 +11,15 @@ import (
 // Scheduler handles periodic tasks for the application
 type Scheduler struct {
 	importers []cards.CardImporter
+	store     *cards.CardStore
 	stop      chan struct{}
 }
 
 // NewScheduler creates a new scheduler instance
-func NewScheduler(importers ...cards.CardImporter) *Scheduler {
+func NewScheduler(store *cards.CardStore, importers ...cards.CardImporter) *Scheduler {
 	return &Scheduler{
 		importers: importers,
+		store:     store,
 		stop:      make(chan struct{}),
 	}
 }
@@ -53,7 +56,7 @@ func (s *Scheduler) runCardImports() {
 func (s *Scheduler) importCards() {
 	for _, importer := range s.importers {
 		log.Printf("Starting scheduled card import for %s...", importer.GetGame())
-		if err := importer.ImportLatestSets(); err != nil {
+		if err := importer.Import(context.Background(), s.store); err != nil {
 			log.Printf("Error importing %s cards: %v", importer.GetGame(), err)
 			continue
 		}

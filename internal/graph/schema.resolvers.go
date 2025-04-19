@@ -35,6 +35,11 @@ func (r *cardResolver) UpdatedAt(ctx context.Context, obj *models.Card) (string,
 	panic(fmt.Errorf("not implemented: UpdatedAt - updatedAt"))
 }
 
+// Cards is the resolver for the cards field.
+func (r *cardSearchResultResolver) Cards(ctx context.Context, obj *types.CardSearchResult) ([]*models.Card, error) {
+	panic(fmt.Errorf("not implemented: Cards - cards"))
+}
+
 // TotalCount is the resolver for the totalCount field.
 func (r *cardSearchResultResolver) TotalCount(ctx context.Context, obj *types.CardSearchResult) (int, error) {
 	panic(fmt.Errorf("not implemented: TotalCount - totalCount"))
@@ -78,15 +83,6 @@ func (r *collectionCardResolver) CollectionID(ctx context.Context, obj *models.C
 // CardID is the resolver for the cardId field.
 func (r *collectionCardResolver) CardID(ctx context.Context, obj *models.CollectionCard) (string, error) {
 	return obj.CardID.String(), nil
-}
-
-// Card is the resolver for the card field.
-func (r *collectionCardResolver) Card(ctx context.Context, obj *models.CollectionCard) (*models.Card, error) {
-	typesCard, err := r.cardStore.FindByID(obj.CardID)
-	if err != nil {
-		return nil, err
-	}
-	return r.cardStore.ToModel(typesCard), nil
 }
 
 // CreatedAt is the resolver for the createdAt field.
@@ -590,3 +586,19 @@ type deckCardResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+/*
+	func (r *collectionCardResolver) Card(ctx context.Context, obj *models.CollectionCard) (*models.Card, error) {
+	typesCard, err := r.cardStore.FindByID(obj.CardID)
+	if err != nil {
+		return nil, err
+	}
+	return r.cardStore.ToModel(typesCard), nil
+}
+*/
