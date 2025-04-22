@@ -300,8 +300,8 @@ func (s *CollectionStore) GetCards(collectionID uuid.UUID) ([]*CollectionCard, e
 	var cards []*CollectionCard
 	for rows.Next() {
 		var (
-			condition string
-			notes     string
+			condition *string
+			notes     *string
 		)
 		card := &CollectionCard{
 			Card: &Card{},
@@ -330,8 +330,12 @@ func (s *CollectionStore) GetCards(collectionID uuid.UUID) ([]*CollectionCard, e
 		if err != nil {
 			return nil, err
 		}
-		card.Condition = condition
-		card.Notes = notes
+		if condition != nil {
+			card.Condition = *condition
+		}
+		if notes != nil {
+			card.Notes = *notes
+		}
 		cards = append(cards, card)
 	}
 
