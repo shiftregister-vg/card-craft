@@ -48,15 +48,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const url = new URL(request.url);
   const cursor = url.searchParams.get('cursor');
 
-  console.log('Fetching collection with ID:', params.id, 'cursor:', cursor);
-
   // Fetch collection details
   const { data, error } = await serverClient.query(COLLECTION_QUERY, {
     id: params.id,
   }).toPromise();
   
   if (error) {
-    console.error('GraphQL error:', error);
     throw new Response('Error fetching collection', { status: 500 });
   }
   
@@ -72,19 +69,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   }).toPromise();
 
   if (cardsError) {
-    console.error('GraphQL error:', cardsError);
     throw new Response('Error fetching cards', { status: 500 });
   }
 
   const initialCards = cardsData?.cardsByGame?.edges?.map((edge: any) => edge.node) || [];
   const hasNextPage = cardsData?.cardsByGame?.pageInfo?.hasNextPage || false;
   const endCursor = cardsData?.cardsByGame?.pageInfo?.endCursor || null;
-
-  console.log('Cards data:', {
-    count: initialCards.length,
-    hasNextPage,
-    endCursor,
-  });
 
   return json<LoaderData>({ 
     collection: data.collection,
@@ -158,24 +148,12 @@ export default function CollectionDetail() {
   const containerRef = useRef<HTMLDivElement>(null);
 
   const loadMoreCards = useCallback(() => {
-    console.log('loadMoreCards called with:', {
-      cursor,
-      loading: loadingRef.current,
-      hasMore,
-      fetcherState: fetcher.state
-    });
     if (!cursor || loadingRef.current) {
-      console.log('Skipping loadMoreCards:', {
-        hasCursor: !!cursor,
-        loading: loadingRef.current,
-        hasMore
-      });
       return;
     }
     
     loadingRef.current = true;
     setLoading(true);
-    console.log('Loading more cards with cursor:', cursor);
     fetcher.load(`/collections/${params.id}?cursor=${encodeURIComponent(cursor)}`);
   }, [cursor, params.id, fetcher, hasMore]);
 
@@ -189,16 +167,6 @@ export default function CollectionDetail() {
       const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 200;
 
-      console.log('Scroll event:', {
-        scrollTop,
-        scrollHeight,
-        clientHeight,
-        isNearBottom,
-        hasMore,
-        cursor,
-        loading: loadingRef.current
-      });
-
       if (isNearBottom) {
         loadMoreCards();
       }
@@ -211,12 +179,6 @@ export default function CollectionDetail() {
   // Update cards when fetcher data changes
   useEffect(() => {
     if (fetcher.data) {
-      console.log('Fetcher data received:', {
-        newCards: fetcher.data.initialCards?.length || 0,
-        hasNextPage: fetcher.data.hasNextPage,
-        endCursor: fetcher.data.endCursor,
-        currentCards: cards.length
-      });
       const newCards = fetcher.data.initialCards || [];
       if (newCards.length > 0) {
         // Create a Set of existing card IDs for quick lookup
@@ -251,14 +213,9 @@ export default function CollectionDetail() {
   const collectionCardIds: Set<string> = new Set(collection.cards.map(card => card.card.id));
 
   const handleCardClick = (card: Card) => {
-    console.log('Card clicked:', card);
     if (collectionCardIds.has(card.id)) {
-      // Card is in collection, show details or remove
-      console.log('Card is in collection');
       setShowAddCard(true);
     } else {
-      // Card is not in collection, show add form
-      console.log('Card is not in collection');
       setShowAddCard(true);
     }
   };
