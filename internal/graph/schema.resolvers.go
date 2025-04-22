@@ -93,11 +93,6 @@ func (r *collectionCardResolver) UpdatedAt(ctx context.Context, obj *models.Coll
 	return obj.UpdatedAt.Format(time.RFC3339), nil
 }
 
-// Card is the resolver for the card field.
-func (r *collectionCardResolver) Card(ctx context.Context, obj *models.CollectionCard) (*models.Card, error) {
-	return obj.Card, nil
-}
-
 // ID is the resolver for the id field.
 func (r *deckResolver) ID(ctx context.Context, obj *models.Deck) (string, error) {
 	panic(fmt.Errorf("not implemented: ID - id"))
@@ -319,39 +314,45 @@ func (r *mutationResolver) AddCardToCollection(ctx context.Context, collectionID
 		return nil, err
 	}
 
-	collection, err := r.collectionStore.FindByID(collectionUUID)
-	if err != nil {
-		return nil, err
-	}
-
-	if collection == nil {
-		return nil, fmt.Errorf("collection not found")
-	}
-
-	if collection.UserID != user.ID {
-		return nil, fmt.Errorf("unauthorized")
-	}
-
 	cardUUID, err := uuid.Parse(input.CardID)
 	if err != nil {
 		return nil, err
 	}
 
-	card := &models.CollectionCard{
-		ID:           uuid.New(),
-		CollectionID: collectionUUID,
-		CardID:       cardUUID,
-		Quantity:     input.Quantity,
-		Condition:    utils.DerefString(input.Condition),
-		IsFoil:       utils.DerefBool(input.IsFoil),
-		Notes:        utils.DerefString(input.Notes),
-	}
-
-	if err := r.collectionStore.AddCard(card); err != nil {
+	collection, err := r.collectionStore.FindByID(collectionUUID)
+	if err != nil {
 		return nil, err
 	}
 
-	return card, nil
+	if collection.UserID != user.ID {
+		return nil, fmt.Errorf("not authorized")
+	}
+
+	card, err := r.cardStore.FindByID(cardUUID)
+	if err != nil {
+		return nil, err
+	}
+
+	if card == nil {
+		return nil, fmt.Errorf("card not found")
+	}
+
+	collectionCard := &models.CollectionCard{
+		ID:           uuid.New(),
+		CollectionID: collectionUUID,
+		CardID:       cardUUID,
+		Card:         r.cardStore.ToModel(card),
+		Quantity:     input.Quantity,
+		IsFoil:       utils.DerefBool(input.IsFoil),
+		Condition:    utils.DerefString(input.Condition),
+		Notes:        utils.DerefString(input.Notes),
+	}
+
+	if err := r.collectionStore.AddCard(collectionCard); err != nil {
+		return nil, err
+	}
+
+	return collectionCard, nil
 }
 
 // UpdateCollectionCard is the resolver for the updateCollectionCard field.
@@ -361,43 +362,35 @@ func (r *mutationResolver) UpdateCollectionCard(ctx context.Context, id string, 
 		return nil, fmt.Errorf("not authenticated")
 	}
 
-	cardUUID, err := uuid.Parse(id)
+	collectionCardUUID, err := uuid.Parse(id)
 	if err != nil {
 		return nil, err
 	}
 
-	card, err := r.collectionStore.GetCard(cardUUID)
+	collectionCard, err := r.collectionStore.GetCard(collectionCardUUID)
 	if err != nil {
 		return nil, err
 	}
 
-	if card == nil {
-		return nil, fmt.Errorf("collection card not found")
-	}
-
-	collection, err := r.collectionStore.FindByID(card.CollectionID)
+	collection, err := r.collectionStore.FindByID(collectionCard.CollectionID)
 	if err != nil {
 		return nil, err
-	}
-
-	if collection == nil {
-		return nil, fmt.Errorf("collection not found")
 	}
 
 	if collection.UserID != user.ID {
-		return nil, fmt.Errorf("unauthorized")
+		return nil, fmt.Errorf("not authorized")
 	}
 
-	card.Quantity = input.Quantity
-	card.Condition = utils.DerefString(input.Condition)
-	card.IsFoil = utils.DerefBool(input.IsFoil)
-	card.Notes = utils.DerefString(input.Notes)
+	collectionCard.Quantity = input.Quantity
+	collectionCard.IsFoil = utils.DerefBool(input.IsFoil)
+	collectionCard.Condition = utils.DerefString(input.Condition)
+	collectionCard.Notes = utils.DerefString(input.Notes)
 
-	if err := r.collectionStore.UpdateCard(card); err != nil {
+	if err := r.collectionStore.UpdateCard(collectionCard); err != nil {
 		return nil, err
 	}
 
-	return card, nil
+	return collectionCard, nil
 }
 
 // RemoveCardFromCollection is the resolver for the removeCardFromCollection field.
@@ -619,15 +612,3 @@ type deckCardResolver struct{ *Resolver }
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
-
-// !!! WARNING !!!
-// The code below was going to be deleted when updating resolvers. It has been copied here so you have
-// one last chance to move it out of harms way if you want. There are two reasons this happens:
-//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
-//    it when you're done.
-//  - You have helper methods in this file. Move them out to keep these resolver files clean.
-/*
-	func (r *cardResolver) ImageUrl(ctx context.Context, obj *models.Card) (string, error) {
-	return obj.ImageUrl, nil
-}
-*/

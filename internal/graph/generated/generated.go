@@ -1336,9 +1336,9 @@ type CollectionCard {
   cardId: ID!
   card: Card!
   quantity: Int!
-  condition: String
-  isFoil: Boolean
-  notes: String
+  condition: String!
+  isFoil: Boolean!
+  notes: String!
   createdAt: String!
   updatedAt: String!
 }
@@ -4273,11 +4273,14 @@ func (ec *executionContext) _CollectionCard_condition(ctx context.Context, field
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_CollectionCard_condition(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4314,11 +4317,14 @@ func (ec *executionContext) _CollectionCard_isFoil(ctx context.Context, field gr
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(bool)
 	fc.Result = res
-	return ec.marshalOBoolean2bool(ctx, field.Selections, res)
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_CollectionCard_isFoil(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -4355,11 +4361,14 @@ func (ec *executionContext) _CollectionCard_notes(ctx context.Context, field gra
 		return graphql.Null
 	}
 	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
 		return graphql.Null
 	}
 	res := resTmp.(string)
 	fc.Result = res
-	return ec.marshalOString2string(ctx, field.Selections, res)
+	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) fieldContext_CollectionCard_notes(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
@@ -10910,10 +10919,19 @@ func (ec *executionContext) _CollectionCard(ctx context.Context, sel ast.Selecti
 			}
 		case "condition":
 			out.Values[i] = ec._CollectionCard_condition(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "isFoil":
 			out.Values[i] = ec._CollectionCard_isFoil(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "notes":
 			out.Values[i] = ec._CollectionCard_notes(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
+			}
 		case "createdAt":
 			field := field
 

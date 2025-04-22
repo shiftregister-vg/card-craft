@@ -83,7 +83,6 @@ func (i *PokemonImporter) ImportSet(ctx context.Context, setID string) error {
 		log.Printf("Fetching page %d for set %s", page, setID)
 
 		var response PokemonResponse
-		var err error
 
 		// Retry logic with exponential backoff
 		maxRetries := 3
@@ -125,10 +124,6 @@ func (i *PokemonImporter) ImportSet(ctx context.Context, setID string) error {
 
 			// If we get here, the request was successful
 			break
-		}
-
-		if err != nil {
-			return fmt.Errorf("failed to fetch cards after %d retries: %w", maxRetries, err)
 		}
 
 		if len(response.Data) == 0 {

@@ -299,6 +299,10 @@ func (s *CollectionStore) GetCards(collectionID uuid.UUID) ([]*CollectionCard, e
 
 	var cards []*CollectionCard
 	for rows.Next() {
+		var (
+			condition string
+			notes     string
+		)
 		card := &CollectionCard{
 			Card: &Card{},
 		}
@@ -307,9 +311,9 @@ func (s *CollectionStore) GetCards(collectionID uuid.UUID) ([]*CollectionCard, e
 			&card.CollectionID,
 			&card.CardID,
 			&card.Quantity,
-			&card.Condition,
+			&condition,
 			&card.IsFoil,
-			&card.Notes,
+			&notes,
 			&card.CreatedAt,
 			&card.UpdatedAt,
 			&card.Card.ID,
@@ -326,6 +330,8 @@ func (s *CollectionStore) GetCards(collectionID uuid.UUID) ([]*CollectionCard, e
 		if err != nil {
 			return nil, err
 		}
+		card.Condition = condition
+		card.Notes = notes
 		cards = append(cards, card)
 	}
 
@@ -345,17 +351,24 @@ func (s *CollectionStore) GetCard(id uuid.UUID) (*CollectionCard, error) {
 		WHERE cc.id = $1
 	`
 
+	var (
+		condition string
+		notes     string
+	)
+
 	card := &CollectionCard{
-		Card: &Card{},
+		Card:      &Card{},
+		Condition: condition,
+		Notes:     notes,
 	}
 	err := s.db.QueryRow(query, id).Scan(
 		&card.ID,
 		&card.CollectionID,
 		&card.CardID,
 		&card.Quantity,
-		&card.Condition,
+		&condition,
 		&card.IsFoil,
-		&card.Notes,
+		&notes,
 		&card.CreatedAt,
 		&card.UpdatedAt,
 		&card.Card.ID,
@@ -373,6 +386,9 @@ func (s *CollectionStore) GetCard(id uuid.UUID) (*CollectionCard, error) {
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
+
+	card.Condition = condition
+	card.Notes = notes
 
 	return card, err
 }

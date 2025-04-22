@@ -95,9 +95,9 @@ type CollectionCard {
   cardId: ID!
   card: Card!
   quantity: Int!
-  condition: String
-  isFoil: Boolean
-  notes: String
+  condition: String!
+  isFoil: Boolean!
+  notes: String!
   createdAt: String!
   updatedAt: String!
 }
