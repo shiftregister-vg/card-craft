@@ -1,0 +1,13 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# devbox rules
+
+- commands must be performed from within a devbox shell. A new devbox shell can be created using `devbox shell`. You will need to wait a couple of seconds for the shell to fully initialize.
+- any new scripts that are created should be added to the scripts section of [devbox.json](mdc:devbox.json). 
+- Devbox provides its own postgresql server, so there is no need to attempt to install one.
+- Because devbox provides its own postgresql server, you should not attempt to start or stop postgres. Instead, check to see if anything is running on port 5432. If a process is running there then assume that postgres is running. Do not attempt to stop the server.
+- When running migrations, check to see if the postgres server is running. If it is, then you can run `devbox run migrate:up`. If it is not then promt the user asking them to start the postgres server and wait for them to confirm it is running. Then you can run the migrations.
