@@ -11,3 +11,7 @@ alwaysApply: true
 - Devbox provides its own postgresql server, so there is no need to attempt to install one.
 - Because devbox provides its own postgresql server, you should not attempt to start or stop postgres. Instead, check to see if anything is running on port 5432. If a process is running there then assume that postgres is running. Do not attempt to stop the server.
 - When running migrations, check to see if the postgres server is running. If it is, then you can run `devbox run migrate:up`. If it is not then promt the user asking them to start the postgres server and wait for them to confirm it is running. Then you can run the migrations.
+- log files can be found at:
+  - web: [web.log](mdc:.devbox/logs/web.log)
+  - server: [server.log](mdc:.devbox/logs/server.log)
+- when reading log files start from the bottom, these files can get really big and it is more performat to tail the end of them.

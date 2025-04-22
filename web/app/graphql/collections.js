@@ -46,7 +46,10 @@ export const MY_COLLECTIONS_QUERY = gql`
       game
       createdAt
       updatedAt
-      cardCount
+      cards {
+        id
+        quantity
+      }
     }
   }
 `;

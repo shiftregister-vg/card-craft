@@ -93,6 +93,11 @@ func (r *collectionCardResolver) UpdatedAt(ctx context.Context, obj *models.Coll
 	return obj.UpdatedAt.Format(time.RFC3339), nil
 }
 
+// Card is the resolver for the card field.
+func (r *collectionCardResolver) Card(ctx context.Context, obj *models.CollectionCard) (*models.Card, error) {
+	return obj.Card, nil
+}
+
 // ID is the resolver for the id field.
 func (r *deckResolver) ID(ctx context.Context, obj *models.Deck) (string, error) {
 	panic(fmt.Errorf("not implemented: ID - id"))

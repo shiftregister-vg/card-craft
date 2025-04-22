@@ -59,7 +59,7 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   // Fetch initial set of cards for the collection's game
   const { data: cardsData, error: cardsError } = await serverClient.query(CARDS_BY_GAME_QUERY, {
     game: data.collection.game.toLowerCase(),
-    first: 50,
+    first: 200,
   }).toPromise();
 
   if (cardsError) {
@@ -150,16 +150,27 @@ export default function CollectionDetail() {
     if (node) observer.current.observe(node);
   }, [loading, hasMore]);
 
+  // Auto-load next page when current page is loaded
+  useEffect(() => {
+    if (!loading && hasMore && cards.length > 0) {
+      const scrollPosition = window.innerHeight + window.scrollY;
+      const documentHeight = document.documentElement.scrollHeight;
+      if (documentHeight - scrollPosition < window.innerHeight * 2) {
+        loadMoreCards();
+      }
+    }
+  }, [loading, hasMore, cards.length]);
+
   const loadMoreCards = async () => {
     if (!cursor || loading) return;
     
     setLoading(true);
-    const serverClient = createServerClient();
+    const serverClient = createServerClient(new Request(window.location.href));
     
     try {
       const { data, error } = await serverClient.query(CARDS_BY_GAME_QUERY, {
         game: collection.game.toLowerCase(),
-        first: 50,
+        first: 200,
         after: cursor,
       }).toPromise();
 

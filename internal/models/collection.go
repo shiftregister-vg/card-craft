@@ -93,8 +93,18 @@ func (s *CollectionStore) FindByID(id uuid.UUID) (*Collection, error) {
 	if err == sql.ErrNoRows {
 		return nil, nil
 	}
+	if err != nil {
+		return nil, err
+	}
 
-	return collection, err
+	// Load the collection cards
+	cards, err := s.GetCards(id)
+	if err != nil {
+		return nil, err
+	}
+	collection.Cards = cards
+
+	return collection, nil
 }
 
 // FindByUserID retrieves all collections for a user
@@ -273,7 +283,8 @@ func (s *CollectionStore) GetCards(collectionID uuid.UUID) ([]*CollectionCard, e
 		SELECT 
 			cc.id, cc.collection_id, cc.card_id, cc.quantity, cc.condition, cc.is_foil, cc.notes,
 			cc.created_at, cc.updated_at,
-			c.id, c.name, c.game, c.set_code, c.set_name, c.number, c.rarity, c.image_url
+			c.id, c.name, c.game, c.set_code, c.set_name, c.number, c.rarity, c.image_url,
+			c.created_at, c.updated_at
 		FROM collection_cards cc
 		JOIN cards c ON cc.card_id = c.id
 		WHERE cc.collection_id = $1
@@ -324,13 +335,19 @@ func (s *CollectionStore) GetCards(collectionID uuid.UUID) ([]*CollectionCard, e
 // GetCard retrieves a specific card from a collection
 func (s *CollectionStore) GetCard(id uuid.UUID) (*CollectionCard, error) {
 	query := `
-		SELECT id, collection_id, card_id, quantity, condition, is_foil, notes,
-			created_at, updated_at
-		FROM collection_cards
-		WHERE id = $1
+		SELECT 
+			cc.id, cc.collection_id, cc.card_id, cc.quantity, cc.condition, cc.is_foil, cc.notes,
+			cc.created_at, cc.updated_at,
+			c.id, c.name, c.game, c.set_code, c.set_name, c.number, c.rarity, c.image_url,
+			c.created_at, c.updated_at
+		FROM collection_cards cc
+		JOIN cards c ON cc.card_id = c.id
+		WHERE cc.id = $1
 	`
 
-	card := &CollectionCard{}
+	card := &CollectionCard{
+		Card: &Card{},
+	}
 	err := s.db.QueryRow(query, id).Scan(
 		&card.ID,
 		&card.CollectionID,
@@ -341,6 +358,16 @@ func (s *CollectionStore) GetCard(id uuid.UUID) (*CollectionCard, error) {
 		&card.Notes,
 		&card.CreatedAt,
 		&card.UpdatedAt,
+		&card.Card.ID,
+		&card.Card.Name,
+		&card.Card.Game,
+		&card.Card.SetCode,
+		&card.Card.SetName,
+		&card.Card.Number,
+		&card.Card.Rarity,
+		&card.Card.ImageUrl,
+		&card.Card.CreatedAt,
+		&card.Card.UpdatedAt,
 	)
 
 	if err == sql.ErrNoRows {
