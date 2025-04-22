@@ -165,7 +165,7 @@ func (s *CardStore) FindByGame(game string, first int, after string) ([]*types.C
 		SELECT id, name, game, set_code, set_name, number, rarity, image_url, created_at, updated_at
 		FROM cards
 		WHERE LOWER(game) = LOWER($1)
-		AND ($2 = '' OR (set_code, number) > ($2, $3))
+		AND ($2 = '' OR (set_code > $2) OR (set_code = $2 AND number > $3))
 		ORDER BY set_code, number
 		LIMIT $4
 	`
@@ -218,7 +218,7 @@ func (s *CardStore) FindByGame(game string, first int, after string) ([]*types.C
 				SELECT 1
 				FROM cards
 				WHERE LOWER(game) = LOWER($1)
-				AND (set_code, number) > ($2, $3)
+				AND (set_code > $2 OR (set_code = $2 AND number > $3))
 				LIMIT 1
 			)
 		`

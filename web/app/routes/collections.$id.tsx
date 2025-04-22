@@ -144,23 +144,65 @@ export default function CollectionDetail() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(hasNextPage);
   const [cursor, setCursor] = useState<string | null>(endCursor);
+  const [showBackToTop, setShowBackToTop] = useState(false);
   const loadingRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const headerRef = useRef<HTMLDivElement>(null);
+  const lastProcessedCursorRef = useRef<string | null>(null);
+
+  // Handle scroll events for back to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!headerRef.current) return;
+      
+      const headerRect = headerRef.current.getBoundingClientRect();
+      setShowBackToTop(headerRect.bottom < 0);
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
   const loadMoreCards = useCallback(() => {
     if (!cursor || loadingRef.current) {
+      console.log('LoadMoreCards blocked:', { cursor, loadingRef: loadingRef.current });
       return;
     }
     
+    console.log('Loading more cards with cursor:', cursor);
     loadingRef.current = true;
     setLoading(true);
+    lastProcessedCursorRef.current = cursor;
     fetcher.load(`/collections/${params.id}?cursor=${encodeURIComponent(cursor)}`);
-  }, [cursor, params.id, fetcher, hasMore]);
 
-  // Handle scroll events
+    // Add a safety timeout to reset loading state if we don't get a response
+    setTimeout(() => {
+      if (loadingRef.current) {
+        console.log('Safety timeout: resetting loading state');
+        setLoading(false);
+        loadingRef.current = false;
+        lastProcessedCursorRef.current = null;
+      }
+    }, 1000); // 1 second timeout
+  }, [cursor, params.id, fetcher]);
+
+  // Handle scroll events for infinite loading
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current || loadingRef.current || !hasMore || !cursor) {
+        console.log('Scroll handler blocked:', { 
+          containerExists: !!containerRef.current,
+          loading: loadingRef.current,
+          hasMore,
+          cursor
+        });
         return;
       }
 
@@ -168,6 +210,7 @@ export default function CollectionDetail() {
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 200;
 
       if (isNearBottom) {
+        console.log('Near bottom, loading more cards');
         loadMoreCards();
       }
     };
@@ -179,6 +222,20 @@ export default function CollectionDetail() {
   // Update cards when fetcher data changes
   useEffect(() => {
     if (fetcher.data) {
+      console.log('Fetcher data received:', {
+        newCardsCount: fetcher.data.initialCards?.length || 0,
+        hasNextPage: fetcher.data.hasNextPage,
+        endCursor: fetcher.data.endCursor,
+        currentCardsCount: cards.length,
+        lastProcessedCursor: lastProcessedCursorRef.current
+      });
+
+      // Skip if we've already processed this cursor
+      if (lastProcessedCursorRef.current !== cursor) {
+        console.log('Skipping duplicate fetcher data');
+        return;
+      }
+
       const newCards = fetcher.data.initialCards || [];
       if (newCards.length > 0) {
         // Create a Set of existing card IDs for quick lookup
@@ -186,19 +243,40 @@ export default function CollectionDetail() {
         // Filter out any cards that already exist in our list
         const uniqueNewCards = newCards.filter(card => !existingCardIds.has(card.id));
         
-        // Always update the cursor and hasMore state based on the server response
-        setHasMore(fetcher.data.hasNextPage);
-        setCursor(fetcher.data.endCursor);
+        console.log('Unique new cards:', uniqueNewCards.length);
         
-        // Only add unique cards to the list
         if (uniqueNewCards.length > 0) {
           setCards(prevCards => [...prevCards, ...uniqueNewCards]);
         }
       }
+      
+      // Always update the cursor and hasMore state based on the server response
+      setHasMore(fetcher.data.hasNextPage);
+      setCursor(fetcher.data.endCursor);
       setLoading(false);
       loadingRef.current = false;
+      lastProcessedCursorRef.current = null;
     }
-  }, [fetcher.data, cards.length]);
+  }, [fetcher.data, cards, cursor]);
+
+  // Handle fetcher state changes
+  useEffect(() => {
+    console.log('Fetcher state changed:', fetcher.state);
+    
+    if (fetcher.state === 'idle') {
+      // If we're in a loading state but the fetcher is idle, something went wrong
+      if (loadingRef.current) {
+        console.log('Resetting loading state after idle');
+        setLoading(false);
+        loadingRef.current = false;
+        lastProcessedCursorRef.current = null;
+      }
+    } else if (fetcher.state === 'submitting') {
+      // When submitting, ensure we're in a loading state
+      loadingRef.current = true;
+      setLoading(true);
+    }
+  }, [fetcher.state]);
 
   // Reset cards when collection changes
   useEffect(() => {
@@ -223,7 +301,7 @@ export default function CollectionDetail() {
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="container mx-auto px-4 py-8">
-        <div className="flex justify-between items-center mb-8">
+        <div ref={headerRef} className="flex justify-between items-center mb-8">
           <div>
             <h1 className="text-3xl font-bold">{collection.name}</h1>
             {collection.description && (
@@ -282,6 +360,29 @@ export default function CollectionDetail() {
             />
           )}
         </div>
+
+        {showBackToTop && (
+          <button
+            onClick={scrollToTop}
+            className="fixed bottom-8 right-8 bg-blue-500 text-white p-3 rounded-full shadow-lg hover:bg-blue-600 transition-colors z-50"
+            aria-label="Back to top"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="h-6 w-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 10l7-7m0 0l7 7m-7-7v18"
+              />
+            </svg>
+          </button>
+        )}
 
         {showAddCard && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
