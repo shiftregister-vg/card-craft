@@ -154,27 +154,21 @@ export default function CollectionDetail() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(hasNextPage);
   const [cursor, setCursor] = useState<string | null>(endCursor);
-  const observer = useRef<IntersectionObserver | null>(null);
   const loadingRef = useRef(false);
-
-  // Clean up observer on unmount
-  useEffect(() => {
-    return () => {
-      if (observer.current) {
-        observer.current.disconnect();
-      }
-    };
-  }, []);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   const loadMoreCards = useCallback(() => {
     console.log('loadMoreCards called with:', {
       cursor,
-      loading: loadingRef.current
+      loading: loadingRef.current,
+      hasMore,
+      fetcherState: fetcher.state
     });
     if (!cursor || loadingRef.current) {
       console.log('Skipping loadMoreCards:', {
         hasCursor: !!cursor,
-        loading: loadingRef.current
+        loading: loadingRef.current,
+        hasMore
       });
       return;
     }
@@ -183,56 +177,66 @@ export default function CollectionDetail() {
     setLoading(true);
     console.log('Loading more cards with cursor:', cursor);
     fetcher.load(`/collections/${params.id}?cursor=${encodeURIComponent(cursor)}`);
-  }, [cursor, params.id, fetcher]);
+  }, [cursor, params.id, fetcher, hasMore]);
 
-  const lastCardElementRef = useCallback((node: HTMLDivElement | null) => {
-    console.log('lastCardElementRef called with node:', node ? 'exists' : 'null');
-    if (loadingRef.current) {
-      console.log('Loading in progress, skipping observer setup');
-      return;
-    }
-    if (observer.current) {
-      console.log('Disconnecting existing observer');
-      observer.current.disconnect();
-    }
-    
-    if (node) {
-      console.log('Setting up new observer with:', {
+  // Handle scroll events
+  useEffect(() => {
+    const handleScroll = () => {
+      if (!containerRef.current || loadingRef.current || !hasMore || !cursor) {
+        return;
+      }
+
+      const { scrollTop, scrollHeight, clientHeight } = document.documentElement;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 200;
+
+      console.log('Scroll event:', {
+        scrollTop,
+        scrollHeight,
+        clientHeight,
+        isNearBottom,
         hasMore,
         cursor,
         loading: loadingRef.current
       });
-      observer.current = new IntersectionObserver(entries => {
-        console.log('Observer triggered:', {
-          isIntersecting: entries[0].isIntersecting,
-          hasMore,
-          cursor,
-          loading: loadingRef.current
-        });
-        if (entries[0].isIntersecting && hasMore && cursor && !loadingRef.current) {
-          console.log('Loading more cards...');
-          loadMoreCards();
-        }
-      });
-      
-      observer.current.observe(node);
-    }
-  }, [hasMore, cursor, loadMoreCards]);
+
+      if (isNearBottom) {
+        loadMoreCards();
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [loadMoreCards, hasMore, cursor]);
 
   // Update cards when fetcher data changes
   useEffect(() => {
     if (fetcher.data) {
-      console.log('Fetcher data received:', fetcher.data);
+      console.log('Fetcher data received:', {
+        newCards: fetcher.data.initialCards?.length || 0,
+        hasNextPage: fetcher.data.hasNextPage,
+        endCursor: fetcher.data.endCursor,
+        currentCards: cards.length
+      });
       const newCards = fetcher.data.initialCards || [];
       if (newCards.length > 0) {
-        setCards(prevCards => [...prevCards, ...newCards]);
+        // Create a Set of existing card IDs for quick lookup
+        const existingCardIds = new Set(cards.map(card => card.id));
+        // Filter out any cards that already exist in our list
+        const uniqueNewCards = newCards.filter(card => !existingCardIds.has(card.id));
+        
+        // Always update the cursor and hasMore state based on the server response
         setHasMore(fetcher.data.hasNextPage);
         setCursor(fetcher.data.endCursor);
+        
+        // Only add unique cards to the list
+        if (uniqueNewCards.length > 0) {
+          setCards(prevCards => [...prevCards, ...uniqueNewCards]);
+        }
       }
       setLoading(false);
       loadingRef.current = false;
     }
-  }, [fetcher.data]);
+  }, [fetcher.data, cards.length]);
 
   // Reset cards when collection changes
   useEffect(() => {
@@ -300,14 +304,13 @@ export default function CollectionDetail() {
           </button>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-8" ref={containerRef}>
           {activeTab === "cards" ? (
             <>
               <CardGrid
                 cards={cards}
                 collectionCardIds={collectionCardIds}
                 onCardClick={handleCardClick}
-                lastCardRef={lastCardElementRef}
               />
               {loading && (
                 <div className="text-center py-4">
