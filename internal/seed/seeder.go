@@ -83,7 +83,7 @@ func (s *Seeder) getTestCards() []*models.Card {
 			SetName:  "Silver Tempest",
 			Number:   "001/195",
 			Rarity:   "Rare",
-			ImageURL: "https://example.com/pikachu.jpg",
+			ImageUrl: "https://example.com/pikachu.jpg",
 		},
 		{
 			ID:       uuid.MustParse("00000000-0000-0000-0000-000000000102"),
@@ -93,7 +93,7 @@ func (s *Seeder) getTestCards() []*models.Card {
 			SetName:  "Silver Tempest",
 			Number:   "002/195",
 			Rarity:   "Rare Holo",
-			ImageURL: "https://example.com/charizard.jpg",
+			ImageUrl: "https://example.com/charizard.jpg",
 		},
 		// Star Wars: Unlimited cards
 		{
@@ -104,7 +104,7 @@ func (s *Seeder) getTestCards() []*models.Card {
 			SetName:  "Spark of Rebellion",
 			Number:   "001/204",
 			Rarity:   "Legendary",
-			ImageURL: "https://example.com/luke.jpg",
+			ImageUrl: "https://example.com/luke.jpg",
 		},
 		{
 			ID:       uuid.MustParse("00000000-0000-0000-0000-000000000202"),
@@ -114,7 +114,7 @@ func (s *Seeder) getTestCards() []*models.Card {
 			SetName:  "Spark of Rebellion",
 			Number:   "002/204",
 			Rarity:   "Legendary",
-			ImageURL: "https://example.com/vader.jpg",
+			ImageUrl: "https://example.com/vader.jpg",
 		},
 		// Disney Lorcana cards
 		{
@@ -125,7 +125,7 @@ func (s *Seeder) getTestCards() []*models.Card {
 			SetName:  "The First Chapter",
 			Number:   "001/204",
 			Rarity:   "Legendary",
-			ImageURL: "https://example.com/mickey.jpg",
+			ImageUrl: "https://example.com/mickey.jpg",
 		},
 		{
 			ID:       uuid.MustParse("00000000-0000-0000-0000-000000000302"),
@@ -135,7 +135,7 @@ func (s *Seeder) getTestCards() []*models.Card {
 			SetName:  "The First Chapter",
 			Number:   "002/204",
 			Rarity:   "Legendary",
-			ImageURL: "https://example.com/elsa.jpg",
+			ImageUrl: "https://example.com/elsa.jpg",
 		},
 	}
 }
@@ -230,7 +230,7 @@ func (s *Seeder) Seed(ctx context.Context) error {
 			_, err := tx.Exec(`
 				INSERT INTO cards (id, name, game, set_code, set_name, number, rarity, image_url, created_at, updated_at)
 				VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-			`, card.ID, card.Name, card.Game, card.SetCode, card.SetName, card.Number, card.Rarity, card.ImageURL, time.Now(), time.Now())
+			`, card.ID, card.Name, card.Game, card.SetCode, card.SetName, card.Number, card.Rarity, card.ImageUrl, time.Now(), time.Now())
 			if err != nil {
 				return err
 			}
