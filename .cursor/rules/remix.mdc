@@ -1,0 +1,9 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Remix rules
+
+- CORS is never allowed. All requests to other services must come from the remix app's server side. No client side fetching.

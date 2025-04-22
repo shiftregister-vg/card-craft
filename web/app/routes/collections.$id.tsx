@@ -1,5 +1,5 @@
 import { json, LoaderFunctionArgs, ActionFunctionArgs } from '@remix-run/node';
-import { Form, useActionData, useLoaderData, useNavigation, useParams } from '@remix-run/react';
+import { Form, useActionData, useLoaderData, useNavigation, useParams, useFetcher } from '@remix-run/react';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { createServerClient } from '../lib/urql.js';
 import { requireUser } from '../utils/auth.server.js';
@@ -30,6 +30,12 @@ interface ActionData {
   success?: boolean;
 }
 
+type FetcherData = {
+  initialCards: Card[];
+  hasNextPage: boolean;
+  endCursor: string | null;
+};
+
 export async function loader({ request, params }: LoaderFunctionArgs) {
   await requireUser(request);
   const serverClient = createServerClient(request);
@@ -38,7 +44,11 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw new Response('Collection ID is required', { status: 400 });
   }
 
-  console.log('Fetching collection with ID:', params.id);
+  // Get the cursor from the URL search params
+  const url = new URL(request.url);
+  const cursor = url.searchParams.get('cursor');
+
+  console.log('Fetching collection with ID:', params.id, 'cursor:', cursor);
 
   // Fetch collection details
   const { data, error } = await serverClient.query(COLLECTION_QUERY, {
@@ -50,8 +60,6 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
     throw new Response('Error fetching collection', { status: 500 });
   }
   
-  console.log('Collection data:', JSON.stringify(data, null, 2));
-  
   if (!data?.collection) {
     throw new Response('Collection not found', { status: 404 });
   }
@@ -59,7 +67,8 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   // Fetch initial set of cards for the collection's game
   const { data: cardsData, error: cardsError } = await serverClient.query(CARDS_BY_GAME_QUERY, {
     game: data.collection.game.toLowerCase(),
-    first: 200,
+    first: 50,
+    after: cursor || null,
   }).toPromise();
 
   if (cardsError) {
@@ -70,6 +79,12 @@ export async function loader({ request, params }: LoaderFunctionArgs) {
   const initialCards = cardsData?.cardsByGame?.edges?.map((edge: any) => edge.node) || [];
   const hasNextPage = cardsData?.cardsByGame?.pageInfo?.hasNextPage || false;
   const endCursor = cardsData?.cardsByGame?.pageInfo?.endCursor || null;
+
+  console.log('Cards data:', {
+    count: initialCards.length,
+    hasNextPage,
+    endCursor,
+  });
 
   return json<LoaderData>({ 
     collection: data.collection,
@@ -132,6 +147,7 @@ export default function CollectionDetail() {
   const actionData = useActionData<ActionData>();
   const navigation = useNavigation();
   const params = useParams();
+  const fetcher = useFetcher<FetcherData>();
   const [showAddCard, setShowAddCard] = useState(false);
   const [activeTab, setActiveTab] = useState("cards");
   const [cards, setCards] = useState<Card[]>(initialCards);
@@ -139,56 +155,93 @@ export default function CollectionDetail() {
   const [hasMore, setHasMore] = useState(hasNextPage);
   const [cursor, setCursor] = useState<string | null>(endCursor);
   const observer = useRef<IntersectionObserver | null>(null);
-  const lastCardElementRef = useCallback((node: HTMLDivElement | null) => {
-    if (loading) return;
-    if (observer.current) observer.current.disconnect();
-    observer.current = new IntersectionObserver(entries => {
-      if (entries[0].isIntersecting && hasMore) {
-        loadMoreCards();
-      }
-    });
-    if (node) observer.current.observe(node);
-  }, [loading, hasMore]);
+  const loadingRef = useRef(false);
 
-  // Auto-load next page when current page is loaded
+  // Clean up observer on unmount
   useEffect(() => {
-    if (!loading && hasMore && cards.length > 0) {
-      const scrollPosition = window.innerHeight + window.scrollY;
-      const documentHeight = document.documentElement.scrollHeight;
-      if (documentHeight - scrollPosition < window.innerHeight * 2) {
-        loadMoreCards();
+    return () => {
+      if (observer.current) {
+        observer.current.disconnect();
       }
-    }
-  }, [loading, hasMore, cards.length]);
+    };
+  }, []);
 
-  const loadMoreCards = async () => {
-    if (!cursor || loading) return;
+  const loadMoreCards = useCallback(() => {
+    console.log('loadMoreCards called with:', {
+      cursor,
+      loading: loadingRef.current
+    });
+    if (!cursor || loadingRef.current) {
+      console.log('Skipping loadMoreCards:', {
+        hasCursor: !!cursor,
+        loading: loadingRef.current
+      });
+      return;
+    }
     
+    loadingRef.current = true;
     setLoading(true);
-    const serverClient = createServerClient(new Request(window.location.href));
-    
-    try {
-      const { data, error } = await serverClient.query(CARDS_BY_GAME_QUERY, {
-        game: collection.game.toLowerCase(),
-        first: 200,
-        after: cursor,
-      }).toPromise();
+    console.log('Loading more cards with cursor:', cursor);
+    fetcher.load(`/collections/${params.id}?cursor=${encodeURIComponent(cursor)}`);
+  }, [cursor, params.id, fetcher]);
 
-      if (error) {
-        console.error('Error loading more cards:', error);
-        return;
-      }
-
-      const newCards = data?.cardsByGame?.edges?.map((edge: any) => edge.node) || [];
-      setCards(prevCards => [...prevCards, ...newCards]);
-      setHasMore(data?.cardsByGame?.pageInfo?.hasNextPage || false);
-      setCursor(data?.cardsByGame?.pageInfo?.endCursor || null);
-    } catch (error) {
-      console.error('Error loading more cards:', error);
-    } finally {
-      setLoading(false);
+  const lastCardElementRef = useCallback((node: HTMLDivElement | null) => {
+    console.log('lastCardElementRef called with node:', node ? 'exists' : 'null');
+    if (loadingRef.current) {
+      console.log('Loading in progress, skipping observer setup');
+      return;
     }
-  };
+    if (observer.current) {
+      console.log('Disconnecting existing observer');
+      observer.current.disconnect();
+    }
+    
+    if (node) {
+      console.log('Setting up new observer with:', {
+        hasMore,
+        cursor,
+        loading: loadingRef.current
+      });
+      observer.current = new IntersectionObserver(entries => {
+        console.log('Observer triggered:', {
+          isIntersecting: entries[0].isIntersecting,
+          hasMore,
+          cursor,
+          loading: loadingRef.current
+        });
+        if (entries[0].isIntersecting && hasMore && cursor && !loadingRef.current) {
+          console.log('Loading more cards...');
+          loadMoreCards();
+        }
+      });
+      
+      observer.current.observe(node);
+    }
+  }, [hasMore, cursor, loadMoreCards]);
+
+  // Update cards when fetcher data changes
+  useEffect(() => {
+    if (fetcher.data) {
+      console.log('Fetcher data received:', fetcher.data);
+      const newCards = fetcher.data.initialCards || [];
+      if (newCards.length > 0) {
+        setCards(prevCards => [...prevCards, ...newCards]);
+        setHasMore(fetcher.data.hasNextPage);
+        setCursor(fetcher.data.endCursor);
+      }
+      setLoading(false);
+      loadingRef.current = false;
+    }
+  }, [fetcher.data]);
+
+  // Reset cards when collection changes
+  useEffect(() => {
+    setCards(initialCards);
+    setHasMore(hasNextPage);
+    setCursor(endCursor);
+    loadingRef.current = false;
+    setLoading(false);
+  }, [initialCards, hasNextPage, endCursor]);
 
   // Create a set of card IDs that are in the collection for quick lookup
   const collectionCardIds: Set<string> = new Set(collection.cards.map(card => card.card.id));
@@ -233,7 +286,7 @@ export default function CollectionDetail() {
                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
             }`}
           >
-            All Cards ({cards.length})
+            All Cards
           </button>
           <button
             onClick={() => setActiveTab("collection")}
@@ -243,7 +296,7 @@ export default function CollectionDetail() {
                 : "bg-gray-200 text-gray-700 hover:bg-gray-300"
             }`}
           >
-            Collection Cards ({collection.cards.length})
+            Collection Cards
           </button>
         </div>
 
