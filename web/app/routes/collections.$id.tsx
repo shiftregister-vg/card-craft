@@ -341,18 +341,12 @@ export default function CollectionDetail() {
 
         <div className="mt-8" ref={containerRef}>
           {activeTab === "cards" ? (
-            <>
-              <CardGrid
-                cards={cards}
-                collectionCardIds={collectionCardIds}
-                onCardClick={handleCardClick}
-              />
-              {loading && (
-                <div className="text-center py-4">
-                  <div className="inline-block animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
-                </div>
-              )}
-            </>
+            <CardGrid
+              cards={cards}
+              collectionCardIds={collectionCardIds}
+              onCardClick={handleCardClick}
+              isLoading={loading}
+            />
           ) : (
             <CollectionCardGrid
               cards={collection.cards}

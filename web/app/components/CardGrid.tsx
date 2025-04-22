@@ -6,9 +6,10 @@ interface CardGridProps {
   collectionCardIds: Set<string>;
   onCardClick?: (card: Card) => void;
   lastCardRef?: (node: HTMLDivElement | null) => void;
+  isLoading?: boolean;
 }
 
-export function CardGrid({ cards, collectionCardIds, onCardClick, lastCardRef }: CardGridProps) {
+export function CardGrid({ cards, collectionCardIds, onCardClick, lastCardRef, isLoading = false }: CardGridProps) {
   console.log('CardGrid received cards:', cards.length);
 
   return (
@@ -35,9 +36,19 @@ export function CardGrid({ cards, collectionCardIds, onCardClick, lastCardRef }:
                 <p className="text-xs">{card.setCode} {card.number}</p>
               </div>
             </div>
+            {collectionCardIds.has(card.id) && (
+              <div className="absolute top-2 right-2 bg-blue-500 text-white rounded-full w-6 h-6 flex items-center justify-center">
+                ✓
+              </div>
+            )}
           </div>
         );
       })}
+      {isLoading && (
+        <div className="flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-4 border-blue-500 border-t-transparent"></div>
+        </div>
+      )}
     </div>
   );
 } 
