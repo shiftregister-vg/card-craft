@@ -42,7 +42,7 @@ type FetcherData = {
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   await requireUser(request);
   const url = new URL(request.url);
-  const page = parseInt(url.searchParams.get("page") || "1");
+  const cursor = url.searchParams.get("cursor") || null;
   const pageSize = 50;
 
   const serverClient = createServerClient(request);
@@ -67,8 +67,8 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   // Fetch cards for the collection's game
   const { data: cardsData, error: cardsError } = await serverClient.query(CARDS_BY_GAME_QUERY, {
     game: collectionData.collection.game.toLowerCase(),
-    page,
-    pageSize,
+    first: pageSize,
+    after: cursor,
   }).toPromise();
 
   if (cardsError) {
@@ -77,10 +77,9 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
   return json({
     collection: collectionData.collection,
-    initialCards: cardsData.searchCards.cards,
-    totalCount: cardsData.searchCards.totalCount,
-    currentPage: cardsData.searchCards.page,
-    pageSize: cardsData.searchCards.pageSize,
+    initialCards: cardsData.cardsByGame.edges.map(edge => edge.node),
+    hasNextPage: cardsData.cardsByGame.pageInfo.hasNextPage,
+    endCursor: cardsData.cardsByGame.pageInfo.endCursor,
   });
 };
 
@@ -133,7 +132,7 @@ export async function action({ request, params }: ActionFunctionArgs) {
 }
 
 export default function CollectionDetail() {
-  const { collection, initialCards, totalCount, currentPage, pageSize } = useLoaderData<typeof loader>();
+  const { collection, initialCards, hasNextPage, endCursor } = useLoaderData<typeof loader>();
   const actionData = useActionData<ActionData>();
   const navigation = useNavigation();
   const params = useParams();
@@ -143,16 +142,13 @@ export default function CollectionDetail() {
   const [activeTab, setActiveTab] = useState("cards");
   const [cards, setCards] = useState<Card[]>(initialCards);
   const [loading, setLoading] = useState(false);
-  const [hasMore, setHasMore] = useState(true);
-  const [cursor, setCursor] = useState<string | null>(null);
+  const [hasMore, setHasMore] = useState(hasNextPage);
+  const [cursor, setCursor] = useState<string | null>(endCursor);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const loadingRef = useRef(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLDivElement>(null);
   const lastProcessedCursorRef = useRef<string | null>(null);
-  const [searchParams, setSearchParams] = useSearchParams();
-  const page = parseInt(searchParams.get("page") || "1");
-  const totalPages = Math.ceil(totalCount / pageSize);
 
   // Handle scroll events for back to top button
   useEffect(() => {
@@ -185,28 +181,12 @@ export default function CollectionDetail() {
     setLoading(true);
     lastProcessedCursorRef.current = cursor;
     fetcher.load(`/collections/${params.id}?cursor=${encodeURIComponent(cursor)}`);
-
-    // Add a safety timeout to reset loading state if we don't get a response
-    setTimeout(() => {
-      if (loadingRef.current) {
-        console.log('Safety timeout: resetting loading state');
-        setLoading(false);
-        loadingRef.current = false;
-        lastProcessedCursorRef.current = null;
-      }
-    }, 1000); // 1 second timeout
   }, [cursor, params.id, fetcher]);
 
   // Handle scroll events for infinite loading
   useEffect(() => {
     const handleScroll = () => {
       if (!containerRef.current || loadingRef.current || !hasMore || !cursor) {
-        console.log('Scroll handler blocked:', { 
-          containerExists: !!containerRef.current,
-          loading: loadingRef.current,
-          hasMore,
-          cursor
-        });
         return;
       }
 
@@ -214,7 +194,6 @@ export default function CollectionDetail() {
       const isNearBottom = scrollHeight - scrollTop - clientHeight < 200;
 
       if (isNearBottom) {
-        console.log('Near bottom, loading more cards');
         loadMoreCards();
       }
     };
@@ -226,20 +205,6 @@ export default function CollectionDetail() {
   // Update cards when fetcher data changes
   useEffect(() => {
     if (fetcher.data) {
-      console.log('Fetcher data received:', {
-        newCardsCount: fetcher.data.initialCards?.length || 0,
-        hasNextPage: fetcher.data.hasNextPage,
-        endCursor: fetcher.data.endCursor,
-        currentCardsCount: cards.length,
-        lastProcessedCursor: lastProcessedCursorRef.current
-      });
-
-      // Skip if we've already processed this cursor
-      if (lastProcessedCursorRef.current !== cursor) {
-        console.log('Skipping duplicate fetcher data');
-        return;
-      }
-
       const newCards = fetcher.data.initialCards || [];
       if (newCards.length > 0) {
         // Create a Set of existing card IDs for quick lookup
@@ -247,36 +212,24 @@ export default function CollectionDetail() {
         // Filter out any cards that already exist in our list
         const uniqueNewCards = newCards.filter(card => !existingCardIds.has(card.id));
         
-        console.log('Unique new cards:', uniqueNewCards.length);
-        
         if (uniqueNewCards.length > 0) {
           setCards(prevCards => [...prevCards, ...uniqueNewCards]);
         }
       }
       
-      // Always update the cursor and hasMore state based on the server response
       setHasMore(fetcher.data.hasNextPage);
       setCursor(fetcher.data.endCursor);
       setLoading(false);
       loadingRef.current = false;
-      lastProcessedCursorRef.current = null;
     }
-  }, [fetcher.data, cards, cursor]);
+  }, [fetcher.data, cards]);
 
   // Handle fetcher state changes
   useEffect(() => {
-    console.log('Fetcher state changed:', fetcher.state);
-    
-    if (fetcher.state === 'idle') {
-      // If we're in a loading state but the fetcher is idle, something went wrong
-      if (loadingRef.current) {
-        console.log('Resetting loading state after idle');
-        setLoading(false);
-        loadingRef.current = false;
-        lastProcessedCursorRef.current = null;
-      }
+    if (fetcher.state === 'idle' && loadingRef.current) {
+      setLoading(false);
+      loadingRef.current = false;
     } else if (fetcher.state === 'submitting') {
-      // When submitting, ensure we're in a loading state
       loadingRef.current = true;
       setLoading(true);
     }
@@ -285,11 +238,11 @@ export default function CollectionDetail() {
   // Reset cards when collection changes
   useEffect(() => {
     setCards(initialCards);
-    setHasMore(true);
-    setCursor(null);
+    setHasMore(hasNextPage);
+    setCursor(endCursor);
     loadingRef.current = false;
     setLoading(false);
-  }, [initialCards]);
+  }, [initialCards, hasNextPage, endCursor]);
 
   // Create a set of card IDs that are in the collection for quick lookup
   const collectionCardIds: Set<string> = new Set(collection.cards.map(card => card.card.id));
@@ -318,18 +271,6 @@ export default function CollectionDetail() {
 
   // Check if we're on the import route
   const isImportRoute = location.pathname.endsWith('/import');
-
-  const handleNextPage = () => {
-    if (page < totalPages) {
-      setSearchParams({ page: (page + 1).toString() });
-    }
-  };
-
-  const handlePrevPage = () => {
-    if (page > 1) {
-      setSearchParams({ page: (page - 1).toString() });
-    }
-  };
 
   // Add type for card parameter
   const isCardInCollection = (card: Card, collectionCardIds: Set<string>) => {
@@ -424,26 +365,6 @@ export default function CollectionDetail() {
                 </svg>
               </button>
             )}
-
-            <div className="flex justify-between items-center mt-4">
-              <button
-                onClick={handlePrevPage}
-                disabled={page <= 1}
-                className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
-              >
-                Previous
-              </button>
-              <span>
-                Page {currentPage} of {totalPages}
-              </span>
-              <button
-                onClick={handleNextPage}
-                disabled={page >= totalPages}
-                className="px-4 py-2 bg-blue-500 text-white rounded disabled:opacity-50"
-              >
-                Next
-              </button>
-            </div>
 
             {showAddCard && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">

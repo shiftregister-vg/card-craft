@@ -55,23 +55,27 @@ export const MY_COLLECTIONS_QUERY = gql`
 `;
 
 export const CARDS_BY_GAME_QUERY = gql`
-  query CardsByGame($game: String!, $page: Int, $pageSize: Int) {
-    searchCards(game: $game, page: $page, pageSize: $pageSize) {
-      cards {
-        id
-        name
-        game
-        setCode
-        setName
-        number
-        rarity
-        imageUrl
-        createdAt
-        updatedAt
+  query CardsByGame($game: String!, $first: Int, $after: String) {
+    cardsByGame(game: $game, first: $first, after: $after) {
+      edges {
+        node {
+          id
+          name
+          game
+          setCode
+          setName
+          number
+          rarity
+          imageUrl
+          createdAt
+          updatedAt
+        }
+        cursor
       }
-      totalCount
-      page
-      pageSize
+      pageInfo {
+        hasNextPage
+        endCursor
+      }
     }
   }
 `;
