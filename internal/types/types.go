@@ -64,8 +64,8 @@ type CardFilters struct {
 
 // CardSearchResult represents the result of a card search
 type CardSearchResult struct {
-	Cards    []*Card `json:"cards"`
-	Total    int     `json:"total"`
-	Page     int     `json:"page"`
-	PageSize int     `json:"pageSize"`
+	Cards      []*Card `json:"cards"`
+	TotalCount int     `json:"totalCount"`
+	Page       int     `json:"page"`
+	PageSize   int     `json:"pageSize"`
 }

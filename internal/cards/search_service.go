@@ -78,10 +78,10 @@ func (s *SearchService) Search(opts types.SearchOptions) (*types.CardSearchResul
 	paginatedCards := filteredCards[start:end]
 
 	return &types.CardSearchResult{
-		Cards:    paginatedCards,
-		Total:    total,
-		Page:     opts.Page,
-		PageSize: opts.PageSize,
+		Cards:      paginatedCards,
+		TotalCount: total,
+		Page:       opts.Page,
+		PageSize:   opts.PageSize,
 	}, nil
 }
 

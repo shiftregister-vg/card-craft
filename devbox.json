@@ -10,7 +10,7 @@
   ],
   "env": {
     "DEVBOX_COREPACK_ENABLED": "true",
-    "GOPATH": "$PWD/.devbox/bin/go/bin",
+    "GOPATH": "$PWD/.devbox/bin/go/bin"
   },
   "shell": {
     "init_hook": [
@@ -40,7 +40,8 @@
       ],
       "migrate:up":     "scripts/migrate.sh up",
       "migrate:down":   "scripts/migrate.sh down",
-      "migrate:create": "scripts/migrate.sh create"
+      "migrate:create": "scripts/migrate.sh create",
+      "rotate-logs":    "scripts/rotate-logs.sh"
     }
   }
 }

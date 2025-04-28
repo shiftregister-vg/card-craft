@@ -1,7 +1,9 @@
 package models
 
 import (
+	"context"
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -252,4 +254,158 @@ func (s *CardStore) FindByGameSetAndNumber(game string, setCode string, number s
 	}
 
 	return &card, nil
+}
+
+// SearchCards searches for cards based on the given criteria
+func (s *CardStore) SearchCards(ctx context.Context, game, setCode, rarity, name *string, page, pageSize *int, sortBy, sortOrder *string) (*CardConnection, error) {
+	// Build the query
+	query := `
+		SELECT id, name, game, set_code, set_name, number, rarity, image_url,
+			created_at, updated_at
+		FROM cards
+		WHERE 1=1
+	`
+	args := []interface{}{}
+	argCount := 1
+
+	if game != nil {
+		query += fmt.Sprintf(" AND LOWER(game) = LOWER($%d)", argCount)
+		args = append(args, *game)
+		argCount++
+	}
+
+	if setCode != nil {
+		query += fmt.Sprintf(" AND set_code = $%d", argCount)
+		args = append(args, *setCode)
+		argCount++
+	}
+
+	if rarity != nil {
+		query += fmt.Sprintf(" AND rarity = $%d", argCount)
+		args = append(args, *rarity)
+		argCount++
+	}
+
+	if name != nil {
+		query += fmt.Sprintf(" AND name ILIKE $%d", argCount)
+		args = append(args, "%"+*name+"%")
+		argCount++
+	}
+
+	// Add sorting
+	if sortBy != nil {
+		query += fmt.Sprintf(" ORDER BY %s", *sortBy)
+		if sortOrder != nil {
+			query += fmt.Sprintf(" %s", *sortOrder)
+		}
+	} else {
+		query += " ORDER BY set_code, number"
+	}
+
+	// Add pagination
+	if pageSize != nil {
+		query += fmt.Sprintf(" LIMIT $%d", argCount)
+		args = append(args, *pageSize)
+		argCount++
+
+		if page != nil {
+			query += fmt.Sprintf(" OFFSET $%d", argCount)
+			args = append(args, (*page-1)*(*pageSize))
+		}
+	} else {
+		query += " LIMIT 100"
+	}
+
+	// Execute the query
+	rows, err := s.db.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var edges []*CardEdge
+	for rows.Next() {
+		card := &Card{}
+		err := rows.Scan(
+			&card.ID,
+			&card.Name,
+			&card.Game,
+			&card.SetCode,
+			&card.SetName,
+			&card.Number,
+			&card.Rarity,
+			&card.ImageUrl,
+			&card.CreatedAt,
+			&card.UpdatedAt,
+		)
+		if err != nil {
+			return nil, err
+		}
+		edges = append(edges, &CardEdge{
+			Node:   card,
+			Cursor: fmt.Sprintf("%s:%s", card.SetCode, card.Number),
+		})
+	}
+
+	// Check if there are more results
+	var hasNextPage bool
+	if len(edges) > 0 {
+		checkQuery := `
+			SELECT EXISTS (
+				SELECT 1
+				FROM cards
+				WHERE 1=1
+		`
+		checkArgs := []interface{}{}
+		checkArgCount := 1
+
+		if game != nil {
+			checkQuery += fmt.Sprintf(" AND LOWER(game) = LOWER($%d)", checkArgCount)
+			checkArgs = append(checkArgs, *game)
+			checkArgCount++
+		}
+
+		if setCode != nil {
+			checkQuery += fmt.Sprintf(" AND set_code = $%d", checkArgCount)
+			checkArgs = append(checkArgs, *setCode)
+			checkArgCount++
+		}
+
+		if rarity != nil {
+			checkQuery += fmt.Sprintf(" AND rarity = $%d", checkArgCount)
+			checkArgs = append(checkArgs, *rarity)
+			checkArgCount++
+		}
+
+		if name != nil {
+			checkQuery += fmt.Sprintf(" AND name ILIKE $%d", checkArgCount)
+			checkArgs = append(checkArgs, "%"+*name+"%")
+			checkArgCount++
+		}
+
+		checkQuery += fmt.Sprintf(" AND (set_code > $%d OR (set_code = $%d AND number > $%d))", checkArgCount, checkArgCount, checkArgCount+1)
+		checkArgs = append(checkArgs, edges[len(edges)-1].Node.SetCode, edges[len(edges)-1].Node.Number)
+
+		checkQuery += " LIMIT 1)"
+
+		err = s.db.QueryRowContext(ctx, checkQuery, checkArgs...).Scan(&hasNextPage)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Generate the next cursor
+	var endCursor *string
+	if hasNextPage && len(edges) > 0 {
+		cursor := fmt.Sprintf("%s:%s", edges[len(edges)-1].Node.SetCode, edges[len(edges)-1].Node.Number)
+		endCursor = &cursor
+	}
+
+	return &CardConnection{
+		Edges: edges,
+		PageInfo: &PageInfo{
+			HasNextPage: hasNextPage,
+			EndCursor:   endCursor,
+		},
+	}, nil
 }

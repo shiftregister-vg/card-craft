@@ -8,6 +8,7 @@ import (
 	"github.com/shiftregister-vg/card-craft/internal/auth"
 	"github.com/shiftregister-vg/card-craft/internal/cards"
 	"github.com/shiftregister-vg/card-craft/internal/models"
+	"github.com/shiftregister-vg/card-craft/internal/search"
 )
 
 // This file will not be regenerated automatically.
@@ -22,6 +23,7 @@ type Resolver struct {
 	deckStore       *models.DeckStore
 	collectionStore *models.CollectionStore
 	authService     *auth.Service
+	searchService   *search.SearchService
 }
 
 // NewResolver creates a new resolver with the given dependencies
@@ -33,6 +35,7 @@ func NewResolver(
 	collectionStore *models.CollectionStore,
 	authService *auth.Service,
 ) *Resolver {
+	searchService := search.NewSearchService(cardStore)
 	return &Resolver{
 		db:              db,
 		cardStore:       cardStore,
@@ -40,5 +43,6 @@ func NewResolver(
 		deckStore:       deckStore,
 		collectionStore: collectionStore,
 		authService:     authService,
+		searchService:   searchService,
 	}
 }

@@ -59,6 +59,12 @@ type ComplexityRoot struct {
 		User  func(childComplexity int) int
 	}
 
+	BulkImportResult struct {
+		Errors        func(childComplexity int) int
+		ImportedCount func(childComplexity int) int
+		Success       func(childComplexity int) int
+	}
+
 	Card struct {
 		CreatedAt func(childComplexity int) int
 		Game      func(childComplexity int) int
@@ -139,6 +145,11 @@ type ComplexityRoot struct {
 		UpdatedAt func(childComplexity int) int
 	}
 
+	ImportError struct {
+		CardID  func(childComplexity int) int
+		Message func(childComplexity int) int
+	}
+
 	ImportResult struct {
 		Errors        func(childComplexity int) int
 		ImportedCards func(childComplexity int) int
@@ -147,26 +158,27 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AddCardToCollection      func(childComplexity int, collectionID string, input models.CollectionCardInput) int
-		AddCardToDeck            func(childComplexity int, deckID string, input types.DeckCardInput) int
-		CreateCard               func(childComplexity int, input models.CardInput) int
-		CreateCollection         func(childComplexity int, input models.CollectionInput) int
-		CreateDeck               func(childComplexity int, input types.DeckInput) int
-		DeleteCard               func(childComplexity int, id string) int
-		DeleteCollection         func(childComplexity int, id string) int
-		DeleteDeck               func(childComplexity int, id string) int
-		ImportCards              func(childComplexity int, game string) int
-		ImportCollection         func(childComplexity int, input models.ImportSource, file graphql.Upload) int
-		Login                    func(childComplexity int, identifier string, password string) int
-		RefreshToken             func(childComplexity int) int
-		Register                 func(childComplexity int, username string, email string, password string) int
-		RemoveCardFromCollection func(childComplexity int, id string) int
-		RemoveCardFromDeck       func(childComplexity int, id string) int
-		UpdateCard               func(childComplexity int, id string, input models.CardInput) int
-		UpdateCollection         func(childComplexity int, id string, input models.CollectionInput) int
-		UpdateCollectionCard     func(childComplexity int, id string, input models.CollectionCardInput) int
-		UpdateDeck               func(childComplexity int, id string, input types.DeckInput) int
-		UpdateDeckCard           func(childComplexity int, id string, quantity int) int
+		AddCardToCollection         func(childComplexity int, collectionID string, input models.CollectionCardInput) int
+		AddCardToDeck               func(childComplexity int, deckID string, input types.DeckCardInput) int
+		BulkImportCardsToCollection func(childComplexity int, collectionID string, file graphql.Upload) int
+		CreateCard                  func(childComplexity int, input models.CardInput) int
+		CreateCollection            func(childComplexity int, input models.CollectionInput) int
+		CreateDeck                  func(childComplexity int, input types.DeckInput) int
+		DeleteCard                  func(childComplexity int, id string) int
+		DeleteCollection            func(childComplexity int, id string) int
+		DeleteDeck                  func(childComplexity int, id string) int
+		ImportCards                 func(childComplexity int, game string) int
+		ImportCollection            func(childComplexity int, input models.ImportSource, file graphql.Upload) int
+		Login                       func(childComplexity int, identifier string, password string) int
+		RefreshToken                func(childComplexity int) int
+		Register                    func(childComplexity int, username string, email string, password string) int
+		RemoveCardFromCollection    func(childComplexity int, id string) int
+		RemoveCardFromDeck          func(childComplexity int, id string) int
+		UpdateCard                  func(childComplexity int, id string, input models.CardInput) int
+		UpdateCollection            func(childComplexity int, id string, input models.CollectionInput) int
+		UpdateCollectionCard        func(childComplexity int, id string, input models.CollectionCardInput) int
+		UpdateDeck                  func(childComplexity int, id string, input types.DeckInput) int
+		UpdateDeckCard              func(childComplexity int, id string, quantity int) int
 	}
 
 	PageInfo struct {
@@ -206,7 +218,6 @@ type CardResolver interface {
 }
 type CardSearchResultResolver interface {
 	Cards(ctx context.Context, obj *types.CardSearchResult) ([]*models.Card, error)
-	TotalCount(ctx context.Context, obj *types.CardSearchResult) (int, error)
 }
 type CollectionResolver interface {
 	ID(ctx context.Context, obj *models.Collection) (string, error)
@@ -261,6 +272,7 @@ type MutationResolver interface {
 	UpdateCollectionCard(ctx context.Context, id string, input models.CollectionCardInput) (*models.CollectionCard, error)
 	RemoveCardFromCollection(ctx context.Context, id string) (bool, error)
 	ImportCards(ctx context.Context, game string) (bool, error)
+	BulkImportCardsToCollection(ctx context.Context, collectionID string, file graphql.Upload) (*models.BulkImportResult, error)
 }
 type QueryResolver interface {
 	Card(ctx context.Context, id string) (*models.Card, error)
@@ -315,6 +327,27 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.AuthPayload.User(childComplexity), true
+
+	case "BulkImportResult.errors":
+		if e.complexity.BulkImportResult.Errors == nil {
+			break
+		}
+
+		return e.complexity.BulkImportResult.Errors(childComplexity), true
+
+	case "BulkImportResult.importedCount":
+		if e.complexity.BulkImportResult.ImportedCount == nil {
+			break
+		}
+
+		return e.complexity.BulkImportResult.ImportedCount(childComplexity), true
+
+	case "BulkImportResult.success":
+		if e.complexity.BulkImportResult.Success == nil {
+			break
+		}
+
+		return e.complexity.BulkImportResult.Success(childComplexity), true
 
 	case "Card.createdAt":
 		if e.complexity.Card.CreatedAt == nil {
@@ -687,6 +720,20 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.DeckCard.UpdatedAt(childComplexity), true
 
+	case "ImportError.cardId":
+		if e.complexity.ImportError.CardID == nil {
+			break
+		}
+
+		return e.complexity.ImportError.CardID(childComplexity), true
+
+	case "ImportError.message":
+		if e.complexity.ImportError.Message == nil {
+			break
+		}
+
+		return e.complexity.ImportError.Message(childComplexity), true
+
 	case "ImportResult.errors":
 		if e.complexity.ImportResult.Errors == nil {
 			break
@@ -738,6 +785,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.AddCardToDeck(childComplexity, args["deckId"].(string), args["input"].(types.DeckCardInput)), true
+
+	case "Mutation.bulkImportCardsToCollection":
+		if e.complexity.Mutation.BulkImportCardsToCollection == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_bulkImportCardsToCollection_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.BulkImportCardsToCollection(childComplexity, args["collectionId"].(string), args["file"].(graphql.Upload)), true
 
 	case "Mutation.createCard":
 		if e.complexity.Mutation.CreateCard == nil {
@@ -1436,6 +1495,9 @@ type Mutation {
   
   # Import cards for a specific game
   importCards(game: String!): Boolean!
+  
+  # Bulk import cards into a collection
+  bulkImportCardsToCollection(collectionId: ID!, file: Upload!): BulkImportResult!
 }
 
 type ImportResult {
@@ -1450,7 +1512,19 @@ input ImportSource {
   format: String!  # e.g. "csv"
 }
 
-scalar Upload `, BuiltIn: false},
+scalar Upload
+
+# Result of bulk import operation
+type BulkImportResult {
+  success: Boolean!
+  importedCount: Int!
+  errors: [ImportError!]
+}
+
+type ImportError {
+  cardId: String!
+  message: String!
+} `, BuiltIn: false},
 }
 var parsedSchema = gqlparser.MustLoadSchema(sources...)
 
@@ -1537,6 +1611,47 @@ func (ec *executionContext) field_Mutation_addCardToDeck_argsInput(
 	}
 
 	var zeroVal types.DeckCardInput
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_bulkImportCardsToCollection_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := ec.field_Mutation_bulkImportCardsToCollection_argsCollectionID(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["collectionId"] = arg0
+	arg1, err := ec.field_Mutation_bulkImportCardsToCollection_argsFile(ctx, rawArgs)
+	if err != nil {
+		return nil, err
+	}
+	args["file"] = arg1
+	return args, nil
+}
+func (ec *executionContext) field_Mutation_bulkImportCardsToCollection_argsCollectionID(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (string, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("collectionId"))
+	if tmp, ok := rawArgs["collectionId"]; ok {
+		return ec.unmarshalNID2string(ctx, tmp)
+	}
+
+	var zeroVal string
+	return zeroVal, nil
+}
+
+func (ec *executionContext) field_Mutation_bulkImportCardsToCollection_argsFile(
+	ctx context.Context,
+	rawArgs map[string]any,
+) (graphql.Upload, error) {
+	ctx = graphql.WithPathContext(ctx, graphql.NewPathWithField("file"))
+	if tmp, ok := rawArgs["file"]; ok {
+		return ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, tmp)
+	}
+
+	var zeroVal graphql.Upload
 	return zeroVal, nil
 }
 
@@ -2703,6 +2818,141 @@ func (ec *executionContext) fieldContext_AuthPayload_user(_ context.Context, fie
 	return fc, nil
 }
 
+func (ec *executionContext) _BulkImportResult_success(ctx context.Context, field graphql.CollectedField, obj *models.BulkImportResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BulkImportResult_success(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Success, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BulkImportResult_success(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BulkImportResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BulkImportResult_importedCount(ctx context.Context, field graphql.CollectedField, obj *models.BulkImportResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BulkImportResult_importedCount(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.ImportedCount, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(int)
+	fc.Result = res
+	return ec.marshalNInt2int(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BulkImportResult_importedCount(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BulkImportResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Int does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _BulkImportResult_errors(ctx context.Context, field graphql.CollectedField, obj *models.BulkImportResult) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_BulkImportResult_errors(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Errors, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.([]*models.ImportError)
+	fc.Result = res
+	return ec.marshalOImportError2ᚕᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐImportErrorᚄ(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_BulkImportResult_errors(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "BulkImportResult",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "cardId":
+				return ec.fieldContext_ImportError_cardId(ctx, field)
+			case "message":
+				return ec.fieldContext_ImportError_message(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type ImportError", field.Name)
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _Card_id(ctx context.Context, field graphql.CollectedField, obj *models.Card) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_Card_id(ctx, field)
 	if err != nil {
@@ -3521,7 +3771,7 @@ func (ec *executionContext) _CardSearchResult_totalCount(ctx context.Context, fi
 	}()
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.CardSearchResult().TotalCount(rctx, obj)
+		return obj.TotalCount, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3542,8 +3792,8 @@ func (ec *executionContext) fieldContext_CardSearchResult_totalCount(_ context.C
 	fc = &graphql.FieldContext{
 		Object:     "CardSearchResult",
 		Field:      field,
-		IsMethod:   true,
-		IsResolver: true,
+		IsMethod:   false,
+		IsResolver: false,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return nil, errors.New("field of type Int does not have child fields")
 		},
@@ -5167,6 +5417,94 @@ func (ec *executionContext) fieldContext_DeckCard_card(_ context.Context, field 
 	return fc, nil
 }
 
+func (ec *executionContext) _ImportError_cardId(ctx context.Context, field graphql.CollectedField, obj *models.ImportError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ImportError_cardId(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.CardID, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ImportError_cardId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ImportError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _ImportError_message(ctx context.Context, field graphql.CollectedField, obj *models.ImportError) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_ImportError_message(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Message, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(string)
+	fc.Result = res
+	return ec.marshalNString2string(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_ImportError_message(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "ImportError",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type String does not have child fields")
+		},
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _ImportResult_totalCards(ctx context.Context, field graphql.CollectedField, obj *models.ImportResult) (ret graphql.Marshaler) {
 	fc, err := ec.fieldContext_ImportResult_totalCards(ctx, field)
 	if err != nil {
@@ -6646,6 +6984,69 @@ func (ec *executionContext) fieldContext_Mutation_importCards(ctx context.Contex
 	}()
 	ctx = graphql.WithFieldContext(ctx, fc)
 	if fc.Args, err = ec.field_Mutation_importCards_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_bulkImportCardsToCollection(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	fc, err := ec.fieldContext_Mutation_bulkImportCardsToCollection(ctx, field)
+	if err != nil {
+		return graphql.Null
+	}
+	ctx = graphql.WithFieldContext(ctx, fc)
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (any, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Mutation().BulkImportCardsToCollection(rctx, fc.Args["collectionId"].(string), fc.Args["file"].(graphql.Upload))
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*models.BulkImportResult)
+	fc.Result = res
+	return ec.marshalNBulkImportResult2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐBulkImportResult(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) fieldContext_Mutation_bulkImportCardsToCollection(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			switch field.Name {
+			case "success":
+				return ec.fieldContext_BulkImportResult_success(ctx, field)
+			case "importedCount":
+				return ec.fieldContext_BulkImportResult_importedCount(ctx, field)
+			case "errors":
+				return ec.fieldContext_BulkImportResult_errors(ctx, field)
+			}
+			return nil, fmt.Errorf("no field named %q was found under type BulkImportResult", field.Name)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_bulkImportCardsToCollection_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
 		ec.Error(ctx, err)
 		return fc, err
 	}
@@ -10168,6 +10569,52 @@ func (ec *executionContext) _AuthPayload(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var bulkImportResultImplementors = []string{"BulkImportResult"}
+
+func (ec *executionContext) _BulkImportResult(ctx context.Context, sel ast.SelectionSet, obj *models.BulkImportResult) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, bulkImportResultImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("BulkImportResult")
+		case "success":
+			out.Values[i] = ec._BulkImportResult_success(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "importedCount":
+			out.Values[i] = ec._BulkImportResult_importedCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "errors":
+			out.Values[i] = ec._BulkImportResult_errors(ctx, field, obj)
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var cardImplementors = []string{"Card"}
 
 func (ec *executionContext) _Card(ctx context.Context, sel ast.SelectionSet, obj *models.Card) graphql.Marshaler {
@@ -10525,41 +10972,10 @@ func (ec *executionContext) _CardSearchResult(ctx context.Context, sel ast.Selec
 
 			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "totalCount":
-			field := field
-
-			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._CardSearchResult_totalCount(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&fs.Invalids, 1)
-				}
-				return res
+			out.Values[i] = ec._CardSearchResult_totalCount(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&out.Invalids, 1)
 			}
-
-			if field.Deferrable != nil {
-				dfs, ok := deferred[field.Deferrable.Label]
-				di := 0
-				if ok {
-					dfs.AddField(field)
-					di = len(dfs.Values) - 1
-				} else {
-					dfs = graphql.NewFieldSet([]graphql.CollectedField{field})
-					deferred[field.Deferrable.Label] = dfs
-				}
-				dfs.Concurrently(di, func(ctx context.Context) graphql.Marshaler {
-					return innerFunc(ctx, dfs)
-				})
-
-				// don't run the out.Concurrently() call below
-				out.Values[i] = graphql.Null
-				continue
-			}
-
-			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
 		case "page":
 			out.Values[i] = ec._CardSearchResult_page(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -11508,6 +11924,50 @@ func (ec *executionContext) _DeckCard(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
+var importErrorImplementors = []string{"ImportError"}
+
+func (ec *executionContext) _ImportError(ctx context.Context, sel ast.SelectionSet, obj *models.ImportError) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, importErrorImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferred := make(map[string]*graphql.FieldSet)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("ImportError")
+		case "cardId":
+			out.Values[i] = ec._ImportError_cardId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "message":
+			out.Values[i] = ec._ImportError_message(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.deferred, int32(len(deferred)))
+
+	for label, dfs := range deferred {
+		ec.processDeferredGroup(graphql.DeferredGroup{
+			Label:    label,
+			Path:     graphql.GetPath(ctx),
+			FieldSet: dfs,
+			Context:  ctx,
+		})
+	}
+
+	return out
+}
+
 var importResultImplementors = []string{"ImportResult"}
 
 func (ec *executionContext) _ImportResult(ctx context.Context, sel ast.SelectionSet, obj *models.ImportResult) graphql.Marshaler {
@@ -11717,6 +12177,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		case "importCards":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_importCards(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "bulkImportCardsToCollection":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_bulkImportCardsToCollection(ctx, field)
 			})
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
@@ -12603,6 +13070,20 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	return res
 }
 
+func (ec *executionContext) marshalNBulkImportResult2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐBulkImportResult(ctx context.Context, sel ast.SelectionSet, v models.BulkImportResult) graphql.Marshaler {
+	return ec._BulkImportResult(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNBulkImportResult2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐBulkImportResult(ctx context.Context, sel ast.SelectionSet, v *models.BulkImportResult) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._BulkImportResult(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNCard2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐCard(ctx context.Context, sel ast.SelectionSet, v models.Card) graphql.Marshaler {
 	return ec._Card(ctx, sel, &v)
 }
@@ -13029,6 +13510,16 @@ func (ec *executionContext) marshalNID2string(ctx context.Context, sel ast.Selec
 	return res
 }
 
+func (ec *executionContext) marshalNImportError2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐImportError(ctx context.Context, sel ast.SelectionSet, v *models.ImportError) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._ImportError(ctx, sel, v)
+}
+
 func (ec *executionContext) marshalNImportResult2githubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐImportResult(ctx context.Context, sel ast.SelectionSet, v models.ImportResult) graphql.Marshaler {
 	return ec._ImportResult(ctx, sel, &v)
 }
@@ -13439,6 +13930,53 @@ func (ec *executionContext) marshalODeck2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋ
 		return graphql.Null
 	}
 	return ec._Deck(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOImportError2ᚕᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐImportErrorᚄ(ctx context.Context, sel ast.SelectionSet, v []*models.ImportError) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNImportError2ᚖgithubᚗcomᚋshiftregisterᚑvgᚋcardᚑcraftᚋinternalᚋmodelsᚐImportError(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint(ctx context.Context, v any) (*int, error) {

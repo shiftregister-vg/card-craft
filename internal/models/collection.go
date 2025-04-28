@@ -33,6 +33,19 @@ type CollectionCard struct {
 	UpdatedAt    time.Time `json:"updatedAt"`
 }
 
+// ImportError represents an error encountered during bulk import
+type ImportError struct {
+	CardID  string `json:"cardId"`
+	Message string `json:"message"`
+}
+
+// BulkImportResult represents the result of a bulk import operation
+type BulkImportResult struct {
+	Success       bool           `json:"success"`
+	ImportedCount int            `json:"importedCount"`
+	Errors        []*ImportError `json:"errors,omitempty"`
+}
+
 // CollectionStore handles database operations for collections
 type CollectionStore struct {
 	db *sql.DB
@@ -395,4 +408,103 @@ func (s *CollectionStore) GetCard(id uuid.UUID) (*CollectionCard, error) {
 	card.Notes = notes
 
 	return card, err
+}
+
+// BulkAddCards adds multiple cards to a collection in a single transaction
+func (s *CollectionStore) BulkAddCards(collectionID uuid.UUID, cards []*CollectionCardInput) (*BulkImportResult, error) {
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	defer tx.Rollback()
+
+	var importedCount int
+	var errors []*ImportError
+
+	query := `
+		INSERT INTO collection_cards (
+			id, collection_id, card_id, quantity, condition,
+			is_foil, notes, created_at, updated_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		ON CONFLICT (collection_id, card_id) DO UPDATE
+		SET quantity = collection_cards.quantity + EXCLUDED.quantity,
+			condition = COALESCE(EXCLUDED.condition, collection_cards.condition),
+			is_foil = COALESCE(EXCLUDED.is_foil, collection_cards.is_foil),
+			notes = COALESCE(EXCLUDED.notes, collection_cards.notes),
+			updated_at = EXCLUDED.updated_at
+	`
+
+	now := time.Now()
+
+	for _, input := range cards {
+		cardID, err := uuid.Parse(input.CardID)
+		if err != nil {
+			errors = append(errors, &ImportError{
+				CardID:  input.CardID,
+				Message: "invalid card ID",
+			})
+			continue
+		}
+
+		// Handle nullable fields
+		var condition string
+		if input.Condition != nil {
+			condition = *input.Condition
+		}
+
+		var isFoil bool
+		if input.IsFoil != nil {
+			isFoil = *input.IsFoil
+		}
+
+		var notes string
+		if input.Notes != nil {
+			notes = *input.Notes
+		}
+
+		collectionCard := &CollectionCard{
+			ID:           uuid.New(),
+			CollectionID: collectionID,
+			CardID:       cardID,
+			Quantity:     input.Quantity,
+			Condition:    condition,
+			IsFoil:       isFoil,
+			Notes:        notes,
+			CreatedAt:    now,
+			UpdatedAt:    now,
+		}
+
+		_, err = tx.Exec(
+			query,
+			collectionCard.ID,
+			collectionCard.CollectionID,
+			collectionCard.CardID,
+			collectionCard.Quantity,
+			collectionCard.Condition,
+			collectionCard.IsFoil,
+			collectionCard.Notes,
+			collectionCard.CreatedAt,
+			collectionCard.UpdatedAt,
+		)
+
+		if err != nil {
+			errors = append(errors, &ImportError{
+				CardID:  input.CardID,
+				Message: err.Error(),
+			})
+			continue
+		}
+
+		importedCount++
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, err
+	}
+
+	return &BulkImportResult{
+		Success:       true,
+		ImportedCount: importedCount,
+		Errors:        errors,
+	}, nil
 }

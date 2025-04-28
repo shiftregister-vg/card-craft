@@ -1,0 +1,30 @@
+{"level":"info","process":"server","replica":0}
+{"level":"info","process":"server","replica":0,"message":"  __    _   ___  "}
+{"level":"info","process":"server","replica":0,"message":" / /\\  | | | |_) "}
+{"level":"info","process":"server","replica":0,"message":"/_/--\\ |_| |_| \\_ (devel), built with Go go1.24.1"}
+{"level":"info","process":"server","replica":0}
+{"level":"info","process":"server","replica":0,"message":"mkdir /home/vanessa/projects/card-craft/web/tmp"}
+{"level":"info","process":"server","replica":0,"message":"watching ."}
+{"level":"info","process":"server","replica":0,"message":"watching app"}
+{"level":"info","process":"server","replica":0,"message":"watching app/components"}
+{"level":"info","process":"server","replica":0,"message":"watching app/context"}
+{"level":"info","process":"server","replica":0,"message":"watching app/graphql"}
+{"level":"info","process":"server","replica":0,"message":"watching app/lib"}
+{"level":"info","process":"server","replica":0,"message":"watching app/routes"}
+{"level":"info","process":"server","replica":0,"message":"watching app/types"}
+{"level":"info","process":"server","replica":0,"message":"watching app/utils"}
+{"level":"info","process":"server","replica":0,"message":"watching node_modules"}
+{"level":"info","process":"server","replica":0,"message":"watching node_modules/@headlessui"}
+{"level":"info","process":"server","replica":0,"message":"watching node_modules/@remix-run"}
+{"level":"info","process":"server","replica":0,"message":"watching node_modules/@types"}
+{"level":"info","process":"server","replica":0,"message":"watching node_modules/@typescript-eslint"}
+{"level":"info","process":"server","replica":0,"message":"watching node_modules/@urql"}
+{"level":"info","process":"server","replica":0,"message":"watching public"}
+{"level":"info","process":"server","replica":0,"message":"!exclude tmp"}
+{"level":"info","process":"server","replica":0,"message":"building..."}
+{"level":"info","process":"server","replica":0,"message":"no Go files in /home/vanessa/projects/card-craft/web\r"}
+{"level":"info","process":"server","replica":0,"message":"failed to build, error: exit status 1"}
+{"level":"info","process":"server","replica":0,"message":"running..."}
+{"level":"info","process":"server","replica":0,"message":"/bin/sh: 1: /home/vanessa/projects/card-craft/web/tmp/main: not found\r"}
+{"level":"info","process":"server","replica":0,"message":"cleaning..."}
+{"level":"info","process":"server","replica":0,"message":"see you again~"}

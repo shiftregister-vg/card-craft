@@ -1,9 +1,12 @@
 package main
 
 import (
+	"context"
+	"fmt"
 	"log"
 	"net/http"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/handler/extension"
 	"github.com/99designs/gqlgen/graphql/handler/lru"
@@ -91,6 +94,12 @@ func main() {
 
 	// Enable introspection
 	graphqlHandler.Use(extension.Introspection{})
+	graphqlHandler.Use(extension.FixedComplexityLimit(1000))
+	graphqlHandler.AroundOperations(func(ctx context.Context, next graphql.OperationHandler) graphql.ResponseHandler {
+		oc := graphql.GetOperationContext(ctx)
+		fmt.Printf("operation: %s\n query: %s\n variables: %v\n", oc.OperationName, oc.RawQuery, oc.Variables)
+		return next(ctx)
+	})
 
 	// Enable automatic persisted queries
 	graphqlHandler.Use(extension.AutomaticPersistedQuery{

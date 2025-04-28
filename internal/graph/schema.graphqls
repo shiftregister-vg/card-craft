@@ -195,6 +195,9 @@ type Mutation {
   
   # Import cards for a specific game
   importCards(game: String!): Boolean!
+  
+  # Bulk import cards into a collection
+  bulkImportCardsToCollection(collectionId: ID!, file: Upload!): BulkImportResult!
 }
 
 type ImportResult {
@@ -209,4 +212,16 @@ input ImportSource {
   format: String!  # e.g. "csv"
 }
 
-scalar Upload 
+scalar Upload
+
+# Result of bulk import operation
+type BulkImportResult {
+  success: Boolean!
+  importedCount: Int!
+  errors: [ImportError!]
+}
+
+type ImportError {
+  cardId: String!
+  message: String!
+} 
