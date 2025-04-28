@@ -38,10 +38,12 @@
         "psql postgres -c \"ALTER DATABASE postgres OWNER TO \\\"card-craft\\\";\"",
         "pg_ctl stop -m fast"
       ],
-      "migrate:up":     "scripts/migrate.sh up",
-      "migrate:down":   "scripts/migrate.sh down",
-      "migrate:create": "scripts/migrate.sh create",
-      "rotate-logs":    "scripts/rotate-logs.sh"
+      "migrate:up":     "$DEVBOX_PROJECT_ROOT/scripts/migrate.sh up",
+      "migrate:down":   "$DEVBOX_PROJECT_ROOT/scripts/migrate.sh down",
+      "migrate:create": "$DEVBOX_PROJECT_ROOT/scripts/migrate.sh create",
+      "rotate-logs":    "$DEVBOX_PROJECT_ROOT/scripts/rotate-logs.sh",
+      "import-mtg":    "go run $DEVBOX_PROJECT_ROOT/cmd/import/main.go --game mtg",
+      "import-pokemon": "go run $DEVBOX_PROJECT_ROOT/cmd/import/main.go --game pokemon"
     }
   }
 }

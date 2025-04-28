@@ -41,6 +41,7 @@ func main() {
 
 	// Initialize stores
 	cardStore := cards.NewCardStore(db.DB)
+	mtgCardStore := cards.NewMTGCardStore(db.DB)
 	pokemonStore := cards.NewPokemonCardStore(db.DB)
 	deckStore := models.NewDeckStore(db.DB)
 	userStore := models.NewUserStore(db.DB)
@@ -60,8 +61,9 @@ func main() {
 	pokemonImporter := cards.NewPokemonImporter(cardStore, pokemonStore)
 	lorcanaImporter := cards.NewLorcanaImporter(cardStore)
 	starWarsImporter := cards.NewStarWarsImporter(cardStore)
+	mtgImporter := cards.NewMTGImporter(cardStore, mtgCardStore)
 
-	sched := scheduler.NewScheduler(cardStore, pokemonImporter, lorcanaImporter, starWarsImporter)
+	sched := scheduler.NewScheduler(cardStore, pokemonImporter, lorcanaImporter, starWarsImporter, mtgImporter)
 	if cfg.EnableCardImports {
 		log.Println("Card imports are enabled, starting scheduler...")
 		sched.Start()

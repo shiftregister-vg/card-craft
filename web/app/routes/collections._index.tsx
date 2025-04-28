@@ -134,6 +134,7 @@ export default function Collections() {
                       <option value="pokemon">Pokémon</option>
                       <option value="lorcana">Disney Lorcana</option>
                       <option value="starwars">Star Wars: Unlimited</option>
+                      <option value="mtg">Magic: The Gathering</option>
                     </select>
                   </div>
                   <div>

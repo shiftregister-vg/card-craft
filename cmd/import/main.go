@@ -12,7 +12,7 @@ import (
 
 func main() {
 	// Parse command line flags
-	gameType := flag.String("game", "", "Game type to import (pokemon, lorcana, starwars)")
+	gameType := flag.String("game", "", "Game type to import (pokemon, lorcana, starwars, mtg)")
 	flag.Parse()
 
 	if *gameType == "" {
@@ -34,6 +34,7 @@ func main() {
 
 	// Create card store
 	cardStore := cards.NewCardStore(db.DB)
+	mtgCardStore := cards.NewMTGCardStore(db.DB)
 
 	// Create game-specific stores
 	pokemonStore := cards.NewPokemonCardStore(db.DB)
@@ -47,6 +48,8 @@ func main() {
 		importer = cards.NewLorcanaImporter(cardStore)
 	case "starwars":
 		importer = cards.NewStarWarsImporter(cardStore)
+	case "mtg":
+		importer = cards.NewMTGImporter(cardStore, mtgCardStore)
 	default:
 		log.Fatalf("Unsupported game type: %s", *gameType)
 	}

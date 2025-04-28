@@ -62,13 +62,13 @@ func (s *CardStore) Update(card *types.Card) error {
 	return err
 }
 
-// FindByGameAndNumber finds a card by its game, set name, and number
+// FindByGameAndNumber finds a card by its game, set code, and number
 func (s *CardStore) FindByGameAndNumber(game, setCode, number string) (*types.Card, error) {
 	query := `
 		SELECT id, name, game, set_code, set_name, number, rarity, image_url, created_at, updated_at
 		FROM cards
 		WHERE LOWER(game) = LOWER($1) 
-		AND LOWER(set_name) = LOWER($2) 
+		AND set_code = $2 
 		AND number = $3
 	`
 	row := s.db.QueryRow(query, game, setCode, number)
