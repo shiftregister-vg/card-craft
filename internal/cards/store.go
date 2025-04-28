@@ -297,3 +297,67 @@ func (s *CardStore) ToModel(card *types.Card) *models.Card {
 		UpdatedAt: card.UpdatedAt,
 	}
 }
+
+// CreateBatch inserts multiple cards into the database
+func (s *CardStore) CreateBatch(tx *sql.Tx, cards []*types.Card) error {
+	query := `
+		INSERT INTO cards (id, name, game, set_code, set_name, number, rarity, image_url, created_at, updated_at)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+	`
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, card := range cards {
+		_, err := stmt.Exec(
+			card.ID,
+			card.Name,
+			card.Game,
+			card.SetCode,
+			card.SetName,
+			card.Number,
+			card.Rarity,
+			card.ImageURL,
+			card.CreatedAt,
+			card.UpdatedAt,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create card: %w", err)
+		}
+	}
+	return nil
+}
+
+// UpdateBatch updates multiple cards in the database
+func (s *CardStore) UpdateBatch(tx *sql.Tx, cards []*types.Card) error {
+	query := `
+		UPDATE cards
+		SET name = $1, game = $2, set_code = $3, set_name = $4, number = $5, rarity = $6, image_url = $7, updated_at = $8
+		WHERE id = $9
+	`
+	stmt, err := tx.Prepare(query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, card := range cards {
+		_, err := stmt.Exec(
+			card.Name,
+			card.Game,
+			card.SetCode,
+			card.SetName,
+			card.Number,
+			card.Rarity,
+			card.ImageURL,
+			card.UpdatedAt,
+			card.ID,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to update card: %w", err)
+		}
+	}
+	return nil
+}

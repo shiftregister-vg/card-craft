@@ -163,3 +163,111 @@ func (s *MTGCardStore) Delete(ctx context.Context, id string) error {
 	}
 	return nil
 }
+
+// CreateBatch inserts multiple MTG cards into the database
+func (s *MTGCardStore) CreateBatch(ctx context.Context, tx *sql.Tx, cards []*MTGCard) error {
+	query := `
+		INSERT INTO mtg_cards (
+			card_id, mana_cost, cmc, type_line, oracle_text, power, toughness, loyalty,
+			colors, color_identity, keywords, legalities, reserved, foil, nonfoil,
+			promo, reprint, variation, set_type, released_at, created_at, updated_at
+		)
+		VALUES (
+			$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15,
+			$16, $17, $18, $19, $20, $21, $22
+		)
+	`
+	stmt, err := tx.PrepareContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, card := range cards {
+		legalitiesJSON, err := json.Marshal(card.Legalities)
+		if err != nil {
+			return fmt.Errorf("failed to marshal legalities: %w", err)
+		}
+
+		_, err = stmt.ExecContext(ctx,
+			card.CardID,
+			card.ManaCost,
+			card.CMC,
+			card.TypeLine,
+			card.OracleText,
+			card.Power,
+			card.Toughness,
+			card.Loyalty,
+			pq.Array(card.Colors),
+			pq.Array(card.ColorIdentity),
+			pq.Array(card.Keywords),
+			legalitiesJSON,
+			card.Reserved,
+			card.Foil,
+			card.Nonfoil,
+			card.Promo,
+			card.Reprint,
+			card.Variation,
+			card.SetType,
+			card.ReleasedAt,
+			card.CreatedAt,
+			card.UpdatedAt,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to create MTG card: %w", err)
+		}
+	}
+	return nil
+}
+
+// UpdateBatch updates multiple MTG cards in the database
+func (s *MTGCardStore) UpdateBatch(ctx context.Context, tx *sql.Tx, cards []*MTGCard) error {
+	query := `
+		UPDATE mtg_cards
+		SET mana_cost = $1, cmc = $2, type_line = $3, oracle_text = $4, power = $5,
+			toughness = $6, loyalty = $7, colors = $8, color_identity = $9, keywords = $10,
+			legalities = $11, reserved = $12, foil = $13, nonfoil = $14, promo = $15,
+			reprint = $16, variation = $17, set_type = $18, released_at = $19, updated_at = $20
+		WHERE id = $21
+	`
+	stmt, err := tx.PrepareContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("failed to prepare statement: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, card := range cards {
+		legalitiesJSON, err := json.Marshal(card.Legalities)
+		if err != nil {
+			return fmt.Errorf("failed to marshal legalities: %w", err)
+		}
+
+		_, err = stmt.ExecContext(ctx,
+			card.ManaCost,
+			card.CMC,
+			card.TypeLine,
+			card.OracleText,
+			card.Power,
+			card.Toughness,
+			card.Loyalty,
+			pq.Array(card.Colors),
+			pq.Array(card.ColorIdentity),
+			pq.Array(card.Keywords),
+			legalitiesJSON,
+			card.Reserved,
+			card.Foil,
+			card.Nonfoil,
+			card.Promo,
+			card.Reprint,
+			card.Variation,
+			card.SetType,
+			card.ReleasedAt,
+			card.UpdatedAt,
+			card.ID,
+		)
+		if err != nil {
+			return fmt.Errorf("failed to update MTG card: %w", err)
+		}
+	}
+	return nil
+}

@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"github.com/google/uuid"
@@ -78,6 +79,31 @@ func (i *MTGImporter) fetchBulkDataInfo(ctx context.Context) (*BulkDataInfo, err
 
 // downloadBulkData downloads the bulk data file with retries
 func (i *MTGImporter) downloadBulkData(ctx context.Context, downloadURI string) (io.ReadCloser, error) {
+	// Check for cached version first
+	cacheDir := os.Getenv("DEVBOX_PROJECT_ROOT") + "/.devbox/cache"
+	cacheFile := cacheDir + "/mtg_bulk_data.json"
+
+	// Create cache directory if it doesn't exist
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		log.Printf("Failed to create cache directory: %v", err)
+	} else {
+		// Check if we have a valid cached version
+		if info, err := os.Stat(cacheFile); err == nil {
+			// Check if cache is less than 24 hours old
+			if time.Since(info.ModTime()) < 24*time.Hour {
+				// Read the cached file
+				file, err := os.Open(cacheFile)
+				if err == nil {
+					log.Printf("Using cached bulk data file from %s", info.ModTime().Format(time.RFC3339))
+					return file, nil
+				}
+				log.Printf("Failed to open cached file: %v", err)
+			} else {
+				log.Printf("Cache is older than 24 hours, downloading fresh data")
+			}
+		}
+	}
+
 	maxRetries := 3
 	backoff := 2 * time.Second
 
@@ -109,7 +135,40 @@ func (i *MTGImporter) downloadBulkData(ctx context.Context, downloadURI string) 
 			continue
 		}
 
-		return resp.Body, nil
+		// Create a temporary file to store the response
+		tempFile, err := os.CreateTemp(cacheDir, "mtg_bulk_data_*.json")
+		if err != nil {
+			resp.Body.Close()
+			log.Printf("Failed to create temporary file: %v", err)
+			continue
+		}
+
+		// Copy the response to the temporary file
+		_, err = io.Copy(tempFile, resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			tempFile.Close()
+			os.Remove(tempFile.Name())
+			log.Printf("Failed to write to temporary file: %v", err)
+			continue
+		}
+		tempFile.Close()
+
+		// Rename the temporary file to the cache file
+		if err := os.Rename(tempFile.Name(), cacheFile); err != nil {
+			os.Remove(tempFile.Name())
+			log.Printf("Failed to rename temporary file: %v", err)
+			continue
+		}
+
+		// Open the cache file for reading
+		file, err := os.Open(cacheFile)
+		if err != nil {
+			log.Printf("Failed to open cache file: %v", err)
+			continue
+		}
+
+		return file, nil
 	}
 
 	return nil, fmt.Errorf("failed to download bulk data after %d attempts", maxRetries)
@@ -117,30 +176,40 @@ func (i *MTGImporter) downloadBulkData(ctx context.Context, downloadURI string) 
 
 // ImportBulkData imports cards from the bulk data file
 func (i *MTGImporter) ImportBulkData(ctx context.Context) error {
-	startTime := time.Now()
-	log.Printf("Starting import of MTG cards from bulk data")
-
-	// Fetch bulk data info
-	bulkInfo, err := i.fetchBulkDataInfo(ctx)
+	// Get last import timestamp
+	lastImport, err := i.getLastImportTimestamp(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to fetch bulk data info: %w", err)
+		return fmt.Errorf("failed to get last import timestamp: %w", err)
 	}
 
-	log.Printf("Found bulk data file: %s (%.2f MB)", bulkInfo.Name, float64(bulkInfo.Size)/1024/1024)
+	log.Printf("Starting import. Last import was at: %v", lastImport)
 
-	// Download the bulk data file
-	body, err := i.downloadBulkData(ctx, bulkInfo.DownloadURI)
+	// Get bulk data info
+	bulkData, err := i.fetchBulkDataInfo(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to get bulk data info: %w", err)
+	}
+
+	log.Printf("Found bulk data file: %s (%.2f MB)", bulkData.Name, float64(bulkData.Size)/1024/1024)
+
+	// Download bulk data
+	body, err := i.downloadBulkData(ctx, bulkData.DownloadURI)
 	if err != nil {
 		return fmt.Errorf("failed to download bulk data: %w", err)
 	}
 	defer body.Close()
 
-	// Read the entire response into memory
-	var cards []MTGAPICard
+	// Process cards in batches
+	batchSize := 100
+	var batch []MTGAPICard
+	processed := 0
+
+	// Read and process cards in batches
 	decoder := json.NewDecoder(body)
-	_, err = decoder.Token() // Read opening bracket
-	if err != nil {
-		return fmt.Errorf("failed to read bulk data: %w", err)
+
+	// Read the opening bracket
+	if _, err := decoder.Token(); err != nil {
+		return fmt.Errorf("failed to read opening bracket: %w", err)
 	}
 
 	for decoder.More() {
@@ -148,225 +217,86 @@ func (i *MTGImporter) ImportBulkData(ctx context.Context) error {
 		if err := decoder.Decode(&card); err != nil {
 			return fmt.Errorf("failed to decode card: %w", err)
 		}
-		cards = append(cards, card)
-	}
 
-	// Read closing bracket
-	_, err = decoder.Token()
-	if err != nil {
-		return fmt.Errorf("failed to read bulk data: %w", err)
-	}
-
-	log.Printf("Downloaded %d cards, starting import...", len(cards))
-
-	// Get the last successful import timestamp
-	lastImport, err := i.getLastImportTimestamp(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to get last import timestamp: %w", err)
-	}
-
-	if lastImport != nil {
-		log.Printf("Last successful import was at %s", lastImport.Format(time.RFC3339))
-	}
-
-	// Process cards in batches
-	totalCards := 0
-	updatedCards := 0
-	newCards := 0
-	skippedCards := 0
-	batchSize := 500
-	processedCards := 0
-
-	for processedCards < len(cards) {
-		// Process a batch of cards
-		maxRetries := 5
-		backoff := 5 * time.Second
-		batchCards := 0
-		batchTimedOut := false
-
-		for retry := 0; retry < maxRetries; retry++ {
-			if retry > 0 {
-				log.Printf("Retrying batch after %v (attempt %d/%d)", backoff, retry+1, maxRetries)
-				time.Sleep(backoff)
-				backoff *= 2 // Exponential backoff
-			}
-
-			batchCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-			batchCards = 0
-			batchTimedOut = false
-
-			endIdx := processedCards + batchSize
-			if endIdx > len(cards) {
-				endIdx = len(cards)
-			}
-
-			for _, apiCard := range cards[processedCards:endIdx] {
-				select {
-				case <-batchCtx.Done():
-					log.Printf("Batch timeout reached after processing %d cards", batchCards)
-					batchTimedOut = true
-					break
-				default:
-					// Skip cards that haven't been updated since last import
-					if lastImport != nil {
-						cardUpdatedAt, err := time.Parse(time.RFC3339, apiCard.UpdatedAt)
-						if err != nil {
-							log.Printf("Failed to parse card update time: %v", err)
-							skippedCards++
-							continue
-						}
-						if !cardUpdatedAt.After(*lastImport) {
-							skippedCards++
-							continue
-						}
-					}
-
-					// Check if card already exists
-					existingCard, err := i.cardStore.FindByGameAndNumber("mtg", apiCard.Set, apiCard.CollectorNumber)
-					if err != nil && err != sql.ErrNoRows {
-						cancel()
-						if retry < maxRetries-1 {
-							log.Printf("Failed to check for existing card, will retry: %v", err)
-							break
-						}
-						return fmt.Errorf("failed to check for existing card after %d retries: %w", retry+1, err)
-					}
-
-					var cardID uuid.UUID
-					if existingCard != nil {
-						cardID = existingCard.ID
-						updatedCards++
-					} else {
-						cardID = uuid.New()
-						newCards++
-					}
-
-					card := &types.Card{
-						ID:        cardID,
-						Name:      apiCard.Name,
-						Game:      "mtg",
-						SetCode:   apiCard.Set,
-						SetName:   apiCard.SetName,
-						Number:    apiCard.CollectorNumber,
-						Rarity:    apiCard.Rarity,
-						ImageURL:  apiCard.ImageURIs.Large,
-						CreatedAt: time.Now(),
-						UpdatedAt: time.Now(),
-					}
-
-					if existingCard != nil {
-						card.CreatedAt = existingCard.CreatedAt
-						if err := i.cardStore.Update(card); err != nil {
-							log.Printf("Failed to update card %s (%s): %v", card.Name, card.Number, err)
-							skippedCards++
-							continue
-						}
-					} else {
-						if err := i.cardStore.Create(card); err != nil {
-							log.Printf("Failed to create card %s (%s): %v", card.Name, card.Number, err)
-							skippedCards++
-							continue
-						}
-					}
-
-					// Create or update MTG-specific card data
-					releasedAt, err := time.Parse("2006-01-02", apiCard.ReleasedAt)
-					if err != nil {
-						log.Printf("Failed to parse release date for card %s (%s): %v", card.Name, card.Number, err)
-						skippedCards++
-						continue
-					}
-
-					mtgCard := &MTGCard{
-						CardID:        cardID.String(),
-						ManaCost:      apiCard.ManaCost,
-						CMC:           apiCard.CMC,
-						TypeLine:      apiCard.TypeLine,
-						OracleText:    apiCard.OracleText,
-						Power:         apiCard.Power,
-						Toughness:     apiCard.Toughness,
-						Loyalty:       apiCard.Loyalty,
-						Colors:        apiCard.Colors,
-						ColorIdentity: apiCard.ColorIdentity,
-						Keywords:      apiCard.Keywords,
-						Legalities:    apiCard.Legalities,
-						Reserved:      apiCard.Reserved,
-						Foil:          apiCard.Foil,
-						Nonfoil:       apiCard.Nonfoil,
-						Promo:         apiCard.Promo,
-						Reprint:       apiCard.Reprint,
-						Variation:     apiCard.Variation,
-						SetType:       apiCard.SetType,
-						ReleasedAt:    releasedAt,
-						CreatedAt:     time.Now(),
-						UpdatedAt:     time.Now(),
-					}
-
-					existingMTGCard, err := i.mtgCardStore.FindByCardID(ctx, cardID.String())
-					if err != nil {
-						log.Printf("Failed to check for existing MTG card %s (%s): %v", card.Name, card.Number, err)
-						skippedCards++
-						continue
-					}
-
-					if existingMTGCard != nil {
-						mtgCard.ID = existingMTGCard.ID
-						mtgCard.CreatedAt = existingMTGCard.CreatedAt
-						if err := i.mtgCardStore.Update(ctx, mtgCard); err != nil {
-							log.Printf("Failed to update MTG card %s (%s): %v", card.Name, card.Number, err)
-							skippedCards++
-							continue
-						}
-					} else {
-						if err := i.mtgCardStore.Create(ctx, mtgCard); err != nil {
-							log.Printf("Failed to create MTG card %s (%s): %v", card.Name, card.Number, err)
-							skippedCards++
-							continue
-						}
-					}
-
-					totalCards++
-					processedCards++
-					batchCards++
-				}
-
-				if batchTimedOut {
-					break
-				}
-			}
-
-			cancel()
-
-			// If we processed any cards in this batch, we're done with retries
-			if batchCards > 0 {
-				log.Printf("Processed batch of %d cards (total: %d)", batchCards, totalCards)
-				break
-			}
-
-			// If we've exhausted all retries and still haven't processed any cards, give up
-			if retry == maxRetries-1 {
-				return fmt.Errorf("failed to process batch after %d retries", maxRetries)
+		if lastImport != nil {
+			cardUpdatedAt, err := time.Parse(time.RFC3339, card.UpdatedAt)
+			if err == nil && !cardUpdatedAt.After(*lastImport) {
+				continue
 			}
 		}
 
-		// If we didn't process any cards in this batch, we're done
-		if batchCards == 0 {
-			break
+		batch = append(batch, card)
+
+		// Process batch when it reaches batchSize
+		if len(batch) >= batchSize {
+			if err := i.processBatch(ctx, batch, lastImport); err != nil {
+				return fmt.Errorf("failed to process batch: %w", err)
+			}
+			processed += len(batch)
+			log.Printf("Processed %d cards", processed)
+			batch = nil
 		}
 	}
 
-	// Update the last successful import timestamp
+	// Process remaining cards
+	if len(batch) > 0 {
+		if err := i.processBatch(ctx, batch, lastImport); err != nil {
+			return fmt.Errorf("failed to process batch: %w", err)
+		}
+		processed += len(batch)
+		log.Printf("Processed %d cards", processed)
+	}
+
+	// Read the closing bracket
+	if _, err := decoder.Token(); err != nil {
+		return fmt.Errorf("failed to read closing bracket: %w", err)
+	}
+
+	// Update last import timestamp
 	if err := i.updateLastImportTimestamp(ctx, time.Now()); err != nil {
-		log.Printf("Failed to update last import timestamp: %v", err)
+		return fmt.Errorf("failed to update last import timestamp: %w", err)
 	}
 
-	duration := time.Since(startTime)
-	log.Printf("Import completed in %s", duration)
-	log.Printf("Total cards processed: %d", totalCards)
-	log.Printf("New cards: %d", newCards)
-	log.Printf("Updated cards: %d", updatedCards)
-	log.Printf("Skipped cards: %d", skippedCards)
+	log.Printf("Import completed successfully. Total cards processed: %d", processed)
+	return nil
+}
 
+func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, lastImport *time.Time) error {
+	for _, card := range batch {
+		// Skip cards that haven't been updated since last import
+		var updatedAt time.Time
+		var err error
+		if card.UpdatedAt != "" {
+			updatedAt, err = time.Parse(time.RFC3339, card.UpdatedAt)
+			if err != nil {
+				return fmt.Errorf("failed to parse updated_at timestamp: %w", err)
+			}
+		} else {
+			// If no updated_at timestamp is provided, use current time
+			updatedAt = time.Now()
+		}
+
+		if lastImport != nil && !updatedAt.After(*lastImport) {
+			continue
+		}
+
+		// Check if card exists
+		existingCard, err := i.cardStore.FindByGameAndNumber("mtg", card.Set, card.CollectorNumber)
+		if err != nil && err != sql.ErrNoRows {
+			return fmt.Errorf("failed to check for existing card: %w", err)
+		}
+
+		cardPtr := &card
+		if err == sql.ErrNoRows {
+			if err := i.createCard(ctx, cardPtr); err != nil {
+				return fmt.Errorf("failed to create card: %w", err)
+			}
+		} else {
+			if err := i.updateCard(ctx, existingCard.ID, cardPtr); err != nil {
+				return fmt.Errorf("failed to update card: %w", err)
+			}
+		}
+	}
 	return nil
 }
 
@@ -397,6 +327,110 @@ func (i *MTGImporter) updateLastImportTimestamp(ctx context.Context, timestamp t
 		return fmt.Errorf("failed to update last import timestamp: %w", err)
 	}
 	return nil
+}
+
+func (i *MTGImporter) updateCard(ctx context.Context, cardID uuid.UUID, apiCard *MTGAPICard) error {
+	// Update base card
+	card := &types.Card{
+		ID:        cardID,
+		Name:      apiCard.Name,
+		Game:      "mtg",
+		SetCode:   apiCard.Set,
+		SetName:   apiCard.SetName,
+		Number:    apiCard.CollectorNumber,
+		Rarity:    apiCard.Rarity,
+		ImageURL:  apiCard.ImageURIs.Large,
+		UpdatedAt: time.Now(),
+	}
+
+	if err := i.cardStore.Update(card); err != nil {
+		return fmt.Errorf("failed to update card: %w", err)
+	}
+
+	// Update MTG-specific card data
+	releasedAt, err := time.Parse("2006-01-02", apiCard.ReleasedAt)
+	if err != nil {
+		return fmt.Errorf("failed to parse release date: %w", err)
+	}
+
+	mtgCard := &MTGCard{
+		CardID:        cardID.String(),
+		ManaCost:      apiCard.ManaCost,
+		CMC:           apiCard.CMC,
+		TypeLine:      apiCard.TypeLine,
+		OracleText:    apiCard.OracleText,
+		Power:         apiCard.Power,
+		Toughness:     apiCard.Toughness,
+		Loyalty:       apiCard.Loyalty,
+		Colors:        apiCard.Colors,
+		ColorIdentity: apiCard.ColorIdentity,
+		Keywords:      apiCard.Keywords,
+		Legalities:    apiCard.Legalities,
+		Reserved:      apiCard.Reserved,
+		Foil:          apiCard.Foil,
+		Nonfoil:       apiCard.Nonfoil,
+		Promo:         apiCard.Promo,
+		Reprint:       apiCard.Reprint,
+		Variation:     apiCard.Variation,
+		SetType:       apiCard.SetType,
+		ReleasedAt:    releasedAt,
+		UpdatedAt:     time.Now(),
+	}
+
+	return i.mtgCardStore.Update(ctx, mtgCard)
+}
+
+func (i *MTGImporter) createCard(ctx context.Context, apiCard *MTGAPICard) error {
+	// Create base card
+	card := &types.Card{
+		ID:        uuid.New(),
+		Name:      apiCard.Name,
+		Game:      "mtg",
+		SetCode:   apiCard.Set,
+		SetName:   apiCard.SetName,
+		Number:    apiCard.CollectorNumber,
+		Rarity:    apiCard.Rarity,
+		ImageURL:  apiCard.ImageURIs.Large,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
+	}
+
+	if err := i.cardStore.Create(card); err != nil {
+		return fmt.Errorf("failed to create card: %w", err)
+	}
+
+	// Create MTG-specific card data
+	releasedAt, err := time.Parse("2006-01-02", apiCard.ReleasedAt)
+	if err != nil {
+		return fmt.Errorf("failed to parse release date: %w", err)
+	}
+
+	mtgCard := &MTGCard{
+		CardID:        card.ID.String(),
+		ManaCost:      apiCard.ManaCost,
+		CMC:           apiCard.CMC,
+		TypeLine:      apiCard.TypeLine,
+		OracleText:    apiCard.OracleText,
+		Power:         apiCard.Power,
+		Toughness:     apiCard.Toughness,
+		Loyalty:       apiCard.Loyalty,
+		Colors:        apiCard.Colors,
+		ColorIdentity: apiCard.ColorIdentity,
+		Keywords:      apiCard.Keywords,
+		Legalities:    apiCard.Legalities,
+		Reserved:      apiCard.Reserved,
+		Foil:          apiCard.Foil,
+		Nonfoil:       apiCard.Nonfoil,
+		Promo:         apiCard.Promo,
+		Reprint:       apiCard.Reprint,
+		Variation:     apiCard.Variation,
+		SetType:       apiCard.SetType,
+		ReleasedAt:    releasedAt,
+		CreatedAt:     time.Now(),
+		UpdatedAt:     time.Now(),
+	}
+
+	return i.mtgCardStore.Create(ctx, mtgCard)
 }
 
 type BulkDataInfo struct {
