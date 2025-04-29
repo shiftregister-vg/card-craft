@@ -43,13 +43,30 @@ func (s *SearchService) Search(opts types.SearchOptions) (*types.CardSearchResul
 		}, nil
 	}
 
-	// Otherwise, get all cards for the game and filter
-	cards, _, err := s.cardStore.FindByGame(opts.Game, 1000, "")
+	// Use the database's search capabilities
+	game := opts.Game
+	name := opts.Name
+	if name == "" {
+		// If no name is provided, get all cards for the game
+		cards, _, err := s.cardStore.FindByGame(game, 50, "")
+		if err != nil {
+			return nil, err
+		}
+		return &types.CardSearchResult{
+			Cards:      cards,
+			TotalCount: len(cards),
+			Page:       1,
+			PageSize:   50,
+		}, nil
+	}
+
+	// Search by name
+	cards, err := s.cardStore.SearchCards(name, game)
 	if err != nil {
 		return nil, err
 	}
 
-	// Filter cards based on options
+	// Apply additional filters if needed
 	var filteredCards []*types.Card
 	for _, card := range cards {
 		// Filter by set code
@@ -62,11 +79,6 @@ func (s *SearchService) Search(opts types.SearchOptions) (*types.CardSearchResul
 			continue
 		}
 
-		// Filter by name
-		if opts.Name != "" && !strings.Contains(strings.ToLower(card.Name), strings.ToLower(opts.Name)) {
-			continue
-		}
-
 		filteredCards = append(filteredCards, card)
 	}
 
@@ -75,7 +87,6 @@ func (s *SearchService) Search(opts types.SearchOptions) (*types.CardSearchResul
 	if page < 1 {
 		page = 1
 	}
-
 	pageSize := opts.PageSize
 	if pageSize < 1 {
 		pageSize = 50

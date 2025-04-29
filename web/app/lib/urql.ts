@@ -22,16 +22,26 @@ export const client = typeof document !== 'undefined'
 
 // Create a server-side client instance
 export function createServerClient(request: Request): Client {
-  const token = request.headers.get('cookie')
+  const cookie = request.headers.get('cookie');
+  const token = cookie
     ?.split('; ')
     .find(row => row.startsWith('token='))
     ?.split('=')[1];
+
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   return createClient({
     url: GRAPHQL_ENDPOINT,
     exchanges: [cacheExchange, fetchExchange],
     fetchOptions: {
-      headers: { Authorization: token ? `Bearer ${token}` : '' },
+      headers,
+      credentials: 'include',
     },
   });
 }

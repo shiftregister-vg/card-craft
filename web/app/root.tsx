@@ -69,12 +69,14 @@ export async function loader({ request }: LoaderFunctionArgs) {
       }
     } catch (err) {
       console.error('Error fetching user data:', err);
+      // Don't throw here, just return null user
     }
   }
 
   return json({
     urqlState: ssr.extractData(),
     user,
+    isAuthenticated: !!user,
   });
 }
 
@@ -105,7 +107,7 @@ function ClientUrqlProvider({ children }: { children: React.ReactNode }) {
 }
 
 function AppWithAuth() {
-  const { user } = useLoaderData<typeof loader>();
+  const { user, isAuthenticated } = useLoaderData<typeof loader>();
   const { setUser } = useAuth();
 
   // Set the user in the auth context when it changes
@@ -123,7 +125,7 @@ function AppWithAuth() {
       </head>
       <body>
         <ClientUrqlProvider>
-          {user !== undefined && <Navigation />}
+          {isAuthenticated && <Navigation />}
           <Outlet />
         </ClientUrqlProvider>
         <ScrollRestoration />

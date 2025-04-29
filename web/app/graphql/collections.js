@@ -80,6 +80,28 @@ export const CARDS_BY_GAME_QUERY = gql`
   }
 `;
 
+export const SEARCH_CARDS_QUERY = gql`
+  query SearchCards($game: String!, $name: String, $page: Int, $pageSize: Int) {
+    searchCards(game: $game, name: $name, page: $page, pageSize: $pageSize) {
+      cards {
+        id
+        name
+        game
+        setCode
+        setName
+        number
+        rarity
+        imageUrl
+        createdAt
+        updatedAt
+      }
+      totalCount
+      page
+      pageSize
+    }
+  }
+`;
+
 export const CREATE_COLLECTION_MUTATION = gql`
   mutation CreateCollection($input: CollectionInput!) {
     createCollection(input: $input) {
