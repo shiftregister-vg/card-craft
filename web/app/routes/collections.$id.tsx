@@ -278,11 +278,18 @@ export default function CollectionDetail() {
 
   // Handle clearing the search
   const handleClearSearch = () => {
+    // Cancel any pending fetcher requests
+    fetcher.data = undefined;
+    isSearchingRef.current = false;
+    
+    // Reset all state
     setSearchQuery("");
     setCards(initialCards);
     setHasMore(hasNextPage);
     setCursor(endCursor);
-    isSearchingRef.current = false;
+    setPreviousSearchQuery("");
+    setLoading(false);
+    loadingRef.current = false;
   };
 
   // Update cards when fetcher data changes
@@ -303,7 +310,12 @@ export default function CollectionDetail() {
       } else if (cursor && fetcher.data) {
         console.log('Appending more cards');
         const data = fetcher.data;
-        setCards(prevCards => [...prevCards, ...data.initialCards]);
+        // Ensure we don't add duplicate cards
+        setCards(prevCards => {
+          const existingIds = new Set(prevCards.map(card => card.id));
+          const newCards = data.initialCards.filter(card => !existingIds.has(card.id));
+          return [...prevCards, ...newCards];
+        });
         setHasMore(data.hasNextPage);
         setCursor(data.endCursor);
       } else {
