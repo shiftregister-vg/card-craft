@@ -19,7 +19,6 @@ import (
 type Resolver struct {
 	db              *sql.DB
 	cardStore       *cards.CardStore
-	mtgStore        *cards.MTGCardStore
 	pokemonStore    *cards.PokemonCardStore
 	deckStore       *models.DeckStore
 	collectionStore *models.CollectionStore
@@ -31,7 +30,6 @@ type Resolver struct {
 func NewResolver(
 	db *sql.DB,
 	cardStore *cards.CardStore,
-	mtgStore *cards.MTGCardStore,
 	pokemonStore *cards.PokemonCardStore,
 	deckStore *models.DeckStore,
 	collectionStore *models.CollectionStore,
@@ -41,7 +39,6 @@ func NewResolver(
 	return &Resolver{
 		db:              db,
 		cardStore:       cardStore,
-		mtgStore:        mtgStore,
 		pokemonStore:    pokemonStore,
 		deckStore:       deckStore,
 		collectionStore: collectionStore,

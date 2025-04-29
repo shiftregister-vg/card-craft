@@ -1,7 +1,6 @@
 package models
 
 import (
-	"context"
 	"database/sql"
 	"time"
 
@@ -508,28 +507,4 @@ func (s *CollectionStore) BulkAddCards(collectionID uuid.UUID, cards []*Collecti
 		ImportedCount: importedCount,
 		Errors:        errors,
 	}, nil
-}
-
-// GetCollectionCard retrieves a collection card by ID
-func (s *CollectionStore) GetCollectionCard(ctx context.Context, id string) (*CollectionCard, error) {
-	var card CollectionCard
-	err := s.db.QueryRowContext(ctx, `
-		SELECT id, collection_id, card_id, quantity, condition, is_foil, notes, created_at, updated_at
-		FROM collection_cards
-		WHERE id = $1
-	`, id).Scan(
-		&card.ID,
-		&card.CollectionID,
-		&card.CardID,
-		&card.Quantity,
-		&card.Condition,
-		&card.IsFoil,
-		&card.Notes,
-		&card.CreatedAt,
-		&card.UpdatedAt,
-	)
-	if err != nil {
-		return nil, err
-	}
-	return &card, nil
 }
