@@ -271,3 +271,55 @@ func (s *MTGCardStore) UpdateBatch(ctx context.Context, tx *sql.Tx, cards []*MTG
 	}
 	return nil
 }
+
+// GetCardByCardID retrieves an MTG card by its card ID
+func (s *MTGCardStore) GetCardByCardID(ctx context.Context, cardID string) (*MTGCard, error) {
+	query := `
+		SELECT id, card_id, mana_cost, cmc, type_line, oracle_text, power, toughness, loyalty,
+			colors, color_identity, keywords, legalities, reserved, foil, nonfoil, promo,
+			reprint, variation, set_type, released_at, created_at, updated_at
+		FROM mtg_cards
+		WHERE card_id = $1
+	`
+
+	var card MTGCard
+	var legalitiesJSON []byte
+	err := s.db.QueryRowContext(ctx, query, cardID).Scan(
+		&card.ID,
+		&card.CardID,
+		&card.ManaCost,
+		&card.CMC,
+		&card.TypeLine,
+		&card.OracleText,
+		&card.Power,
+		&card.Toughness,
+		&card.Loyalty,
+		pq.Array(&card.Colors),
+		pq.Array(&card.ColorIdentity),
+		pq.Array(&card.Keywords),
+		&legalitiesJSON,
+		&card.Reserved,
+		&card.Foil,
+		&card.Nonfoil,
+		&card.Promo,
+		&card.Reprint,
+		&card.Variation,
+		&card.SetType,
+		&card.ReleasedAt,
+		&card.CreatedAt,
+		&card.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get MTG card: %w", err)
+	}
+
+	if err := json.Unmarshal(legalitiesJSON, &card.Legalities); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal legalities: %w", err)
+	}
+
+	return &card, nil
+}

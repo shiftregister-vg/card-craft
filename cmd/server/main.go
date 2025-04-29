@@ -77,6 +77,7 @@ func main() {
 		Resolvers: graph.NewResolver(
 			db.DB,
 			cardStore,
+			mtgCardStore,
 			pokemonStore,
 			deckStore,
 			collectionStore,
