@@ -273,8 +273,10 @@ func (i *MTGImporter) ImportBulkData(ctx context.Context) error {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
+			batchNum := 0
 			for batch := range batchChan {
-				inserted, updated, err := i.processBatch(ctx, batch, lastImport)
+				batchNum++
+				inserted, updated, err := i.processBatch(ctx, batch, lastImport, batchNum)
 				if err != nil {
 					select {
 					case errorChan <- fmt.Errorf("failed to process batch: %w", err):
@@ -402,7 +404,7 @@ func (c *CardSignature) Hash() string {
 	return hex.EncodeToString(hash[:])
 }
 
-func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, lastImport *time.Time) (int, int, error) {
+func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, lastImport *time.Time, batchNumber int) (int, int, error) {
 	// First, check which cards exist and which need to be created
 	var cardsToCreate []*types.Card
 	var cardsToUpdate []*types.Card
@@ -677,7 +679,7 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 	// Perform batch operations in a transaction
 	err := database.WithTransaction(ctx, i.cardStore.db, func(tx *database.Transaction) error {
 		if len(cardsToCreate) > 0 {
-			log.Printf("Creating %d new cards", len(cardsToCreate))
+			log.Printf("Batch %d: Creating %d new base cards", batchNumber, len(cardsToCreate))
 			// Create base cards
 			query := `
 				INSERT INTO cards (id, name, game, set_code, set_name, number, rarity, image_url, created_at, updated_at)
@@ -697,13 +699,13 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 					card.UpdatedAt,
 				)
 				if err != nil {
-					return fmt.Errorf("failed to create card: %w", err)
+					return fmt.Errorf("failed to create card %s (%s): %w", card.Name, card.Number, err)
 				}
 			}
 		}
 
 		if len(mtgCardsToCreate) > 0 {
-			log.Printf("Creating %d new MTG cards", len(mtgCardsToCreate))
+			log.Printf("Batch %d: Creating %d new MTG cards", batchNumber, len(mtgCardsToCreate))
 			// Create MTG cards
 			mtgCreateQuery := `
 				INSERT INTO mtg_cards (
@@ -718,7 +720,7 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 			for _, card := range mtgCardsToCreate {
 				legalitiesJSON, err := json.Marshal(card.Legalities)
 				if err != nil {
-					return fmt.Errorf("failed to marshal legalities: %w", err)
+					return fmt.Errorf("failed to marshal legalities for card %s: %w", card.CardID, err)
 				}
 
 				_, err = tx.Exec(mtgCreateQuery,
@@ -746,13 +748,13 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 					card.UpdatedAt,
 				)
 				if err != nil {
-					return fmt.Errorf("failed to create MTG card: %w", err)
+					return fmt.Errorf("failed to create MTG card for card %s: %w", card.CardID, err)
 				}
 			}
 		}
 
 		if len(cardsToUpdate) > 0 {
-			log.Printf("Updating %d existing cards", len(cardsToUpdate))
+			log.Printf("Batch %d: Updating %d existing cards", batchNumber, len(cardsToUpdate))
 			// Update base cards
 			updateQuery := `
 				UPDATE cards
@@ -772,13 +774,13 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 					card.ID,
 				)
 				if err != nil {
-					return fmt.Errorf("failed to update card: %w", err)
+					return fmt.Errorf("failed to update card %s (%s): %w", card.Name, card.Number, err)
 				}
 			}
 		}
 
 		if len(mtgCardsToUpdate) > 0 {
-			log.Printf("Updating %d existing MTG cards", len(mtgCardsToUpdate))
+			log.Printf("Batch %d: Updating %d existing MTG cards", batchNumber, len(mtgCardsToUpdate))
 			// Update MTG cards
 			mtgUpdateQuery := `
 				UPDATE mtg_cards
@@ -790,7 +792,7 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 			for _, card := range mtgCardsToUpdate {
 				legalitiesJSON, err := json.Marshal(card.Legalities)
 				if err != nil {
-					return fmt.Errorf("failed to marshal legalities: %w", err)
+					return fmt.Errorf("failed to marshal legalities for card %s: %w", card.CardID, err)
 				}
 
 				_, err = tx.Exec(mtgUpdateQuery,
@@ -817,7 +819,7 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 					card.CardID,
 				)
 				if err != nil {
-					return fmt.Errorf("failed to update MTG card: %w", err)
+					return fmt.Errorf("failed to update MTG card for card %s: %w", card.CardID, err)
 				}
 			}
 		}
