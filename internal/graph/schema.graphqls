@@ -98,6 +98,7 @@ type CollectionCard {
   condition: String!
   isFoil: Boolean!
   notes: String!
+  gameSpecificDetails: JSON
   createdAt: String!
   updatedAt: String!
 }
@@ -147,6 +148,7 @@ type Query {
     sortOrder: String
   ): CardSearchResult!
   cardFilters(game: String!): CardFilters!
+  collectionCard(id: ID!): CollectionCard!
   
   # Deck queries
   deck(id: ID!): Deck
@@ -224,4 +226,6 @@ type BulkImportResult {
 type ImportError {
   cardId: String!
   message: String!
-} 
+}
+
+scalar JSON

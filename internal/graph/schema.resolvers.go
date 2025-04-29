@@ -8,6 +8,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"io"
 	"strconv"
@@ -81,6 +82,74 @@ func (r *collectionCardResolver) CollectionID(ctx context.Context, obj *models.C
 // CardID is the resolver for the cardId field.
 func (r *collectionCardResolver) CardID(ctx context.Context, obj *models.CollectionCard) (string, error) {
 	return obj.CardID.String(), nil
+}
+
+// GameSpecificDetails is the resolver for the gameSpecificDetails field.
+func (r *collectionCardResolver) GameSpecificDetails(ctx context.Context, obj *models.CollectionCard) (*string, error) {
+	// Get the card to determine the game
+	card, err := r.cardStore.FindByID(obj.CardID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Fetch game-specific details based on the game type
+	var gameSpecificDetails map[string]interface{}
+	switch strings.ToLower(card.Game) {
+	case "mtg":
+		mtgCard, err := r.mtgStore.GetCardByCardID(ctx, card.ID.String())
+		if err != nil {
+			return nil, err
+		}
+		gameSpecificDetails = map[string]interface{}{
+			"manaCost":      mtgCard.ManaCost,
+			"cmc":           mtgCard.CMC,
+			"typeLine":      mtgCard.TypeLine,
+			"oracleText":    mtgCard.OracleText,
+			"power":         mtgCard.Power,
+			"toughness":     mtgCard.Toughness,
+			"loyalty":       mtgCard.Loyalty,
+			"colors":        mtgCard.Colors,
+			"colorIdentity": mtgCard.ColorIdentity,
+			"keywords":      mtgCard.Keywords,
+			"legalities":    mtgCard.Legalities,
+			"reserved":      mtgCard.Reserved,
+			"foil":          mtgCard.Foil,
+			"nonfoil":       mtgCard.Nonfoil,
+			"promo":         mtgCard.Promo,
+			"reprint":       mtgCard.Reprint,
+			"variation":     mtgCard.Variation,
+			"setType":       mtgCard.SetType,
+			"releasedAt":    mtgCard.ReleasedAt,
+		}
+	case "pokemon":
+		pokemonCard, err := r.pokemonStore.FindByCardID(ctx, card.ID.String())
+		if err != nil {
+			return nil, err
+		}
+		gameSpecificDetails = map[string]interface{}{
+			"hp":          pokemonCard.HP,
+			"types":       pokemonCard.Types,
+			"evolvesFrom": pokemonCard.EvolvesFrom,
+			"evolvesTo":   pokemonCard.EvolvesTo,
+			"abilities":   pokemonCard.Abilities,
+			"attacks":     pokemonCard.Attacks,
+			"weaknesses":  pokemonCard.Weaknesses,
+			"resistances": pokemonCard.Resistances,
+			"retreatCost": pokemonCard.RetreatCost,
+			"subtypes":    pokemonCard.Subtypes,
+			"supertype":   pokemonCard.Supertype,
+			"rules":       pokemonCard.Rules,
+		}
+	}
+
+	// Convert the map to a JSON string
+	jsonBytes, err := json.Marshal(gameSpecificDetails)
+	if err != nil {
+		return nil, err
+	}
+
+	jsonStr := string(jsonBytes)
+	return &jsonStr, nil
 }
 
 // CreatedAt is the resolver for the createdAt field.
@@ -661,6 +730,21 @@ func (r *queryResolver) SearchCards(ctx context.Context, game *string, setCode *
 // CardFilters is the resolver for the cardFilters field.
 func (r *queryResolver) CardFilters(ctx context.Context, game string) (*types.CardFilters, error) {
 	panic(fmt.Errorf("not implemented: CardFilters - cardFilters"))
+}
+
+// CollectionCard is the resolver for the collectionCard field.
+func (r *queryResolver) CollectionCard(ctx context.Context, id string) (*models.CollectionCard, error) {
+	cardID, err := uuid.Parse(id)
+	if err != nil {
+		return nil, fmt.Errorf("invalid card ID: %w", err)
+	}
+
+	card, err := r.collectionStore.GetCard(cardID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to fetch collection card: %w", err)
+	}
+
+	return card, nil
 }
 
 // Deck is the resolver for the deck field.
