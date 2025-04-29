@@ -13,6 +13,9 @@ import (
 	"sync"
 	"time"
 
+	"crypto/sha256"
+	"encoding/hex"
+
 	"github.com/google/uuid"
 	"github.com/lib/pq"
 	"github.com/shiftregister-vg/card-craft/internal/database"
@@ -376,6 +379,29 @@ func (i *MTGImporter) ImportBulkData(ctx context.Context) error {
 	return nil
 }
 
+// CardSignature represents the fields that determine if a card needs updating
+type CardSignature struct {
+	Name       string            `json:"name"`
+	SetName    string            `json:"setName"`
+	Rarity     string            `json:"rarity"`
+	ImageURL   string            `json:"imageUrl"`
+	ManaCost   string            `json:"manaCost"`
+	TypeLine   string            `json:"typeLine"`
+	OracleText string            `json:"oracleText"`
+	Power      string            `json:"power"`
+	Toughness  string            `json:"toughness"`
+	Loyalty    string            `json:"loyalty"`
+	Colors     []string          `json:"colors"`
+	Keywords   []string          `json:"keywords"`
+	Legalities map[string]string `json:"legalities"`
+}
+
+func (c *CardSignature) Hash() string {
+	data, _ := json.Marshal(c)
+	hash := sha256.Sum256(data)
+	return hex.EncodeToString(hash[:])
+}
+
 func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, lastImport *time.Time) (int, int, error) {
 	// First, check which cards exist and which need to be created
 	var cardsToCreate []*types.Card
@@ -385,6 +411,7 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 
 	// Build a map of set+number to card for quick lookup
 	cardMap := make(map[string]*types.Card)
+	missingMtgCards := make(map[string]bool) // Track cards with missing mtg_cards records
 	for _, card := range batch {
 		if card.Set == "" || card.CollectorNumber == "" {
 			log.Printf("Warning: skipping card with missing set or collector number")
@@ -398,9 +425,9 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 	if len(cardMap) > 0 {
 		query := `
 			SELECT c.id, c.name, c.game, c.set_code, c.set_name, c.number, c.rarity, c.image_url, c.created_at, c.updated_at,
-			       m.mana_cost, m.cmc, m.type_line, m.oracle_text, m.power, m.toughness, m.loyalty,
-			       m.colors, m.color_identity, m.keywords, m.legalities, m.reserved, m.foil, m.nonfoil,
-			       m.promo, m.reprint, m.variation, m.set_type, m.released_at
+				       m.id as mtg_id, m.mana_cost, m.cmc, m.type_line, m.oracle_text, m.power, m.toughness, m.loyalty,
+				       m.colors, m.color_identity, m.keywords, m.legalities, m.reserved, m.foil, m.nonfoil,
+				       m.promo, m.reprint, m.variation, m.set_type, m.released_at
 			FROM cards c
 			LEFT JOIN mtg_cards m ON c.id = m.card_id
 			WHERE c.game = 'mtg' AND (c.set_code, c.number) IN (
@@ -430,6 +457,7 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 			var reserved, foil, nonfoil, promo, reprint, variation sql.NullBool
 			var setType sql.NullString
 			var releasedAt sql.NullTime
+			var mtgID sql.NullString
 
 			err := rows.Scan(
 				&card.ID,
@@ -442,6 +470,7 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 				&card.ImageURL,
 				&card.CreatedAt,
 				&card.UpdatedAt,
+				&mtgID,
 				&manaCost,
 				&cmc,
 				&typeLine,
@@ -466,7 +495,18 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 				return 0, 0, fmt.Errorf("failed to scan card: %w", err)
 			}
 
+			// If mtg_id is null, it means the mtg_cards record was deleted
+			if !mtgID.Valid {
+				key := fmt.Sprintf("%s:%s", card.SetCode, card.Number)
+				cardMap[key] = &card        // Keep the existing card
+				missingMtgCards[key] = true // Mark as having missing mtg_cards record
+				log.Printf("Found card %s (%s) with missing mtg_cards record", card.Name, card.Number)
+				continue
+			}
+
 			// Convert nullable fields to their proper types
+			mtgCard.ID = mtgID.String
+			mtgCard.CardID = card.ID.String() // Set the CardID to link to the existing card
 			mtgCard.ManaCost = manaCost.String
 			mtgCard.CMC = cmc.Float64
 			mtgCard.TypeLine = typeLine.String
@@ -576,16 +616,52 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 			cardsToCreate = append(cardsToCreate, baseCard)
 			mtgCardsToCreate = append(mtgCardsToCreate, mtgCard)
 		} else {
-			// Check if the card data has changed
-			needsUpdate := false
-			if baseCard.Name != existingCard.Name ||
-				baseCard.SetName != existingCard.SetName ||
-				baseCard.Rarity != existingCard.Rarity ||
-				baseCard.ImageURL != existingCard.ImageURL {
-				needsUpdate = true
+			// Check if we need to create the mtg_cards record
+			if missingMtgCards[key] {
+				// MTG card record is missing, prepare for creation
+				mtgCard.CardID = existingCard.ID.String()
+				mtgCard.CreatedAt = time.Now()
+				log.Printf("Preparing to create missing mtg_cards record for %s (%s)", existingCard.Name, existingCard.Number)
+				mtgCardsToCreate = append(mtgCardsToCreate, mtgCard)
+				continue
 			}
 
-			if needsUpdate {
+			// Create signature for the new card
+			newSignature := &CardSignature{
+				Name:       baseCard.Name,
+				SetName:    baseCard.SetName,
+				Rarity:     baseCard.Rarity,
+				ImageURL:   baseCard.ImageURL,
+				ManaCost:   card.ManaCost,
+				TypeLine:   card.TypeLine,
+				OracleText: card.OracleText,
+				Power:      card.Power,
+				Toughness:  card.Toughness,
+				Loyalty:    card.Loyalty,
+				Colors:     card.Colors,
+				Keywords:   card.Keywords,
+				Legalities: card.Legalities,
+			}
+
+			// Create signature for the existing card
+			existingSignature := &CardSignature{
+				Name:       existingCard.Name,
+				SetName:    existingCard.SetName,
+				Rarity:     existingCard.Rarity,
+				ImageURL:   existingCard.ImageURL,
+				ManaCost:   mtgCard.ManaCost,
+				TypeLine:   mtgCard.TypeLine,
+				OracleText: mtgCard.OracleText,
+				Power:      mtgCard.Power,
+				Toughness:  mtgCard.Toughness,
+				Loyalty:    mtgCard.Loyalty,
+				Colors:     mtgCard.Colors,
+				Keywords:   mtgCard.Keywords,
+				Legalities: mtgCard.Legalities,
+			}
+
+			// Compare hashes to determine if update is needed
+			if newSignature.Hash() != existingSignature.Hash() {
 				// Card exists and has changed, prepare for update
 				baseCard.ID = existingCard.ID
 				baseCard.CreatedAt = existingCard.CreatedAt
@@ -601,6 +677,7 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 	// Perform batch operations in a transaction
 	err := database.WithTransaction(ctx, i.cardStore.db, func(tx *database.Transaction) error {
 		if len(cardsToCreate) > 0 {
+			log.Printf("Creating %d new cards", len(cardsToCreate))
 			// Create base cards
 			query := `
 				INSERT INTO cards (id, name, game, set_code, set_name, number, rarity, image_url, created_at, updated_at)
@@ -623,9 +700,12 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 					return fmt.Errorf("failed to create card: %w", err)
 				}
 			}
+		}
 
+		if len(mtgCardsToCreate) > 0 {
+			log.Printf("Creating %d new MTG cards", len(mtgCardsToCreate))
 			// Create MTG cards
-			query = `
+			mtgCreateQuery := `
 				INSERT INTO mtg_cards (
 					card_id, mana_cost, cmc, type_line, oracle_text, power, toughness, loyalty,
 					colors, color_identity, keywords, legalities, reserved, foil, nonfoil,
@@ -641,7 +721,7 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 					return fmt.Errorf("failed to marshal legalities: %w", err)
 				}
 
-				_, err = tx.Exec(query,
+				_, err = tx.Exec(mtgCreateQuery,
 					card.CardID,
 					card.ManaCost,
 					card.CMC,
@@ -672,14 +752,15 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 		}
 
 		if len(cardsToUpdate) > 0 {
+			log.Printf("Updating %d existing cards", len(cardsToUpdate))
 			// Update base cards
-			query := `
+			updateQuery := `
 				UPDATE cards
 				SET name = $1, game = $2, set_code = $3, set_name = $4, number = $5, rarity = $6, image_url = $7, updated_at = $8
 				WHERE id = $9
 			`
 			for _, card := range cardsToUpdate {
-				_, err := tx.Exec(query,
+				_, err := tx.Exec(updateQuery,
 					card.Name,
 					card.Game,
 					card.SetCode,
@@ -694,9 +775,12 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 					return fmt.Errorf("failed to update card: %w", err)
 				}
 			}
+		}
 
+		if len(mtgCardsToUpdate) > 0 {
+			log.Printf("Updating %d existing MTG cards", len(mtgCardsToUpdate))
 			// Update MTG cards
-			query = `
+			mtgUpdateQuery := `
 				UPDATE mtg_cards
 				SET mana_cost = $1, cmc = $2, type_line = $3, oracle_text = $4, power = $5, toughness = $6, loyalty = $7,
 					colors = $8, color_identity = $9, keywords = $10, legalities = $11, reserved = $12, foil = $13, nonfoil = $14,
@@ -709,7 +793,7 @@ func (i *MTGImporter) processBatch(ctx context.Context, batch []MTGAPICard, last
 					return fmt.Errorf("failed to marshal legalities: %w", err)
 				}
 
-				_, err = tx.Exec(query,
+				_, err = tx.Exec(mtgUpdateQuery,
 					card.ManaCost,
 					card.CMC,
 					card.TypeLine,

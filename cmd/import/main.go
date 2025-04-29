@@ -13,6 +13,7 @@ import (
 func main() {
 	// Parse command line flags
 	gameType := flag.String("game", "", "Game type to import (pokemon, lorcana, starwars, mtg)")
+	clearStatus := flag.Bool("clear-status", false, "Clear the import status before running the import")
 	flag.Parse()
 
 	if *gameType == "" {
@@ -31,6 +32,14 @@ func main() {
 		log.Fatalf("Failed to initialize database: %v", err)
 	}
 	defer db.Close()
+
+	// Clear import status if requested
+	if *clearStatus {
+		if _, err := db.DB.Exec("DELETE FROM mtg_import_status WHERE id = 1"); err != nil {
+			log.Fatalf("Failed to clear import status: %v", err)
+		}
+		log.Println("Import status cleared")
+	}
 
 	// Create card store
 	cardStore := cards.NewCardStore(db.DB)
