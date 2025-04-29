@@ -77,6 +77,7 @@ func (i *PokemonImporter) ImportSet(ctx context.Context, setID string) error {
 	baseURL := "https://api.pokemontcg.io/v2/cards"
 	page := 1
 	totalCards := 0
+	var cardsCreated, cardsUpdated int
 
 	for {
 		url := fmt.Sprintf("%s?q=set.id:%s&page=%d&pageSize=250", baseURL, setID, page)
@@ -130,7 +131,7 @@ func (i *PokemonImporter) ImportSet(ctx context.Context, setID string) error {
 			break
 		}
 
-		log.Printf("Found %d cards on page %d", len(response.Data), page)
+		log.Printf("Processing %d cards from page %d", len(response.Data), page)
 
 		for _, apiCard := range response.Data {
 			// Check if card already exists
@@ -161,15 +162,15 @@ func (i *PokemonImporter) ImportSet(ctx context.Context, setID string) error {
 
 			if existingCard != nil {
 				card.CreatedAt = existingCard.CreatedAt
-				log.Printf("Updating existing card: %s (%s) with ID: %s", card.Name, card.Number, card.ID)
 				if err := i.cardStore.Update(card); err != nil {
-					return fmt.Errorf("failed to update card: %w", err)
+					return fmt.Errorf("failed to update card %s (%s): %w", card.Name, card.Number, err)
 				}
+				cardsUpdated++
 			} else {
-				log.Printf("Creating new card: %s (%s) with ID: %s", card.Name, card.Number, card.ID)
 				if err := i.cardStore.Create(card); err != nil {
-					return fmt.Errorf("failed to create card: %w", err)
+					return fmt.Errorf("failed to create card %s (%s): %w", card.Name, card.Number, err)
 				}
+				cardsCreated++
 			}
 
 			// Convert HP to int if it's a number
@@ -201,23 +202,18 @@ func (i *PokemonImporter) ImportSet(ctx context.Context, setID string) error {
 
 			existingPokemonCard, err := i.pokemonStore.FindByCardID(ctx, cardID.String())
 			if err != nil {
-				log.Printf("Error checking for existing pokemon card: %v", err)
 				return fmt.Errorf("failed to check for existing pokemon card: %w", err)
 			}
 
 			if existingPokemonCard != nil {
 				pokemonCard.ID = existingPokemonCard.ID
 				pokemonCard.CreatedAt = existingPokemonCard.CreatedAt
-				log.Printf("Updating existing pokemon card for: %s (%s) with CardID: %s", card.Name, card.Number, cardID)
 				if err := i.pokemonStore.Update(ctx, pokemonCard); err != nil {
-					log.Printf("Error updating pokemon card: %v", err)
-					return fmt.Errorf("failed to update pokemon card: %w", err)
+					return fmt.Errorf("failed to update pokemon card for %s (%s): %w", card.Name, card.Number, err)
 				}
 			} else {
-				log.Printf("Creating new pokemon card for: %s (%s) with CardID: %s", card.Name, card.Number, cardID)
 				if err := i.pokemonStore.Create(ctx, pokemonCard); err != nil {
-					log.Printf("Error creating pokemon card: %v", err)
-					return fmt.Errorf("failed to create pokemon card: %w", err)
+					return fmt.Errorf("failed to create pokemon card for %s (%s): %w", card.Name, card.Number, err)
 				}
 			}
 
@@ -227,14 +223,14 @@ func (i *PokemonImporter) ImportSet(ctx context.Context, setID string) error {
 		page++
 	}
 
-	log.Printf("Imported %d cards from set %s", totalCards, setID)
+	log.Printf("Set %s import completed: %d total cards processed (%d created, %d updated)", setID, totalCards, cardsCreated, cardsUpdated)
 	return nil
 }
 
 // ImportLatestSets imports cards from the latest Pokémon sets
 func (i *PokemonImporter) ImportLatestSets(ctx context.Context) error {
 	startTime := time.Now()
-	log.Printf("Starting import of Pokemon sets")
+	log.Printf("Starting Pokemon card import process")
 
 	// Fetch available sets from the API
 	sets, err := i.fetchSets(ctx)
@@ -245,15 +241,15 @@ func (i *PokemonImporter) ImportLatestSets(ctx context.Context) error {
 	log.Printf("Found %d sets to import", len(sets))
 
 	// Import each set
-	for _, set := range sets {
-		log.Printf("Importing set %s (%s)", set.Name, set.ID)
+	for setIndex, set := range sets {
+		log.Printf("Importing set %d/%d: %s (%s)", setIndex+1, len(sets), set.Name, set.ID)
 		if err := i.ImportSet(ctx, set.ID); err != nil {
 			return fmt.Errorf("failed to import set %s: %w", set.ID, err)
 		}
 	}
 
 	duration := time.Since(startTime)
-	log.Printf("Import completed in %s", duration)
+	log.Printf("Pokemon import completed in %s", duration)
 	return nil
 }
 
