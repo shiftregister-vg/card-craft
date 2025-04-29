@@ -8,8 +8,6 @@ import { COLLECTION_QUERY, CARDS_BY_GAME_QUERY, ADD_CARD_TO_COLLECTION_MUTATION,
 import { requireUser } from '../utils/auth.server.js';
 import { CardGrid } from '../components/CardGrid.js';
 import { CollectionCardGrid } from '../components/CollectionCardGrid.js';
-import { getCollection } from '../models/collection.js';
-import { getClient } from '../lib/graphql.js';
 
 interface CollectionCard {
   id: string;
@@ -38,6 +36,10 @@ type FetcherData = {
   hasNextPage: boolean;
   endCursor: string | null;
 };
+
+interface CardEdge {
+  node: Card;
+}
 
 export const loader = async ({ request, params }: LoaderFunctionArgs) => {
   await requireUser(request);
@@ -77,7 +79,7 @@ export const loader = async ({ request, params }: LoaderFunctionArgs) => {
 
   return json({
     collection: collectionData.collection,
-    initialCards: cardsData.cardsByGame.edges.map(edge => edge.node),
+    initialCards: cardsData.cardsByGame.edges.map((edge: CardEdge) => edge.node),
     hasNextPage: cardsData.cardsByGame.pageInfo.hasNextPage,
     endCursor: cardsData.cardsByGame.pageInfo.endCursor,
   });
@@ -245,7 +247,7 @@ export default function CollectionDetail() {
   }, [initialCards, hasNextPage, endCursor]);
 
   // Create a set of card IDs that are in the collection for quick lookup
-  const collectionCardIds: Set<string> = new Set(collection.cards.map(card => card.card.id));
+  const collectionCardIds: Set<string> = new Set(collection.cards.map((card: CollectionCard) => card.card.id));
 
   const handleAddCard = (cardId: string) => {
     fetcher.submit(
@@ -284,12 +286,14 @@ export default function CollectionDetail() {
           <h1 className="text-3xl font-bold text-gray-900">{collection.name}</h1>
           {!isImportRoute && (
             <div className="flex space-x-4">
-              <Link
-                to={`/collections/${collection.id}/import`}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-              >
-                Import from TCG Collector
-              </Link>
+              {collection.game.toLowerCase() === "pokemon" && (
+                <Link
+                  to={`/collections/${collection.id}/import`}
+                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Import from TCG Collector
+                </Link>
+              )}
               <button
                 onClick={() => setShowAddCard(true)}
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
